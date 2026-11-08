@@ -13,7 +13,26 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261108c">
+  <script>
+    // Immediate reset to ensure pure warm champagne light theme
+    try {
+      localStorage.removeItem('bs_theme');
+      sessionStorage.removeItem('bs_theme');
+      document.documentElement.removeAttribute('data-theme');
+      if (document.body) document.body.removeAttribute('data-theme');
+    } catch(e) {}
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(name) { caches.delete(name); });
+      });
+    }
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
 </head>
 <body>
@@ -35,6 +54,7 @@
       <h1 class="hero-title">Baby <span>Showers</span></h1>
       <p class="hero-description">
         A timeless collection of 277 moments, captured on the Nikon Z6 III and preserved in bit-for-bit uncompressed original quality. Anyone with this link can view in large preview and download any original photo.
+        <span class="hero-creator-tag">✨ Created by Srivatsa</span>
       </p>
 
       <!-- Stats / Quality Badges -->
@@ -363,17 +383,17 @@
     <div class="container">
       <div class="footer-logo">Baby <span>Showers</span></div>
       <p class="footer-meta">
-        277 original full-resolution photographs • Captured with Nikon Z6 III (24.4 Megapixels) • Zero compression applied.
+        277 original full-resolution photographs • Captured with Nikon Z6 III (24.4 Megapixels) • Zero compression applied • Created by Srivatsa.
       </p>
       <div class="footer-badge">
-        Hosted on GitHub Pages • Original File Size Preserved
+        Hosted on GitHub Pages • Original File Size Preserved • Created by Srivatsa
       </div>
     </div>
   </footer>
 
-  <!-- Scripts -->
-  <script src="photos-data.js"></script>
-  <script src="gallery.js"></script>
+  <!-- Scripts with Cache Busting -->
+  <script src="photos-data.js?v=20261108c"></script>
+  <script src="gallery.js?v=20261108c"></script>
 </body>
 </html>
 
