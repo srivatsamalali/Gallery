@@ -1627,16 +1627,19 @@
     applyFiltersAndSort();
     handleUrlHash();
 
-    // Register PWA Service Worker for Offline Access
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch((err) => {
-          console.log('Service Worker registration skipped:', err);
-        });
+    // Unregister legacy service workers and clear caches
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((r) => r.unregister());
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((k) => caches.delete(k));
       });
     }
 
-    console.log(`Baby Showers Gallery initialized with ${state.allPhotos.length} original photos.`);
+    console.log(`Baby Showers Gallery initialized with ${state.allPhotos.length} original photos • Created by Srivatsa.`);
   }
 
   // Run on DOM ready
