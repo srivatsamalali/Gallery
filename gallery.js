@@ -304,12 +304,12 @@
           <span class="badge-tag badge-res">📐 ${photo.isPortrait ? 'Portrait • 24 MP' : 'Landscape • 24 MP'}</span>
         </div>
 
-        <!-- Mobile Touch Favorite Button -->
-        <button class="card-mobile-fav ${isFav ? 'active' : ''}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}" data-filename="${photo.filename}">
-          <svg viewBox="0 0 24 24" fill="${isFav ? '#fff' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Subtle Favorite Watermark (only visible if favorited) -->
+        <div class="card-fav-badge ${isFav ? 'visible' : ''}" data-filename="${photo.filename}">
+          <svg viewBox="0 0 24 24">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
-        </button>
+        </div>
 
         <div class="select-checkbox-wrap">
           <div class="select-checkbox">
@@ -374,14 +374,6 @@
 
     // Card click routing
     card.addEventListener('click', (e) => {
-      // Mobile favorite button clicked
-      const mobileFavBtn = e.target.closest('.card-mobile-fav');
-      if (mobileFavBtn) {
-        e.stopPropagation();
-        toggleFavorite(photo.filename, mobileFavBtn);
-        return;
-      }
-
       // Desktop favorite button clicked
       const favBtn = e.target.closest('.btn-fav');
       if (favBtn) {
@@ -455,18 +447,14 @@
       try { navigator.vibrate(12); } catch (e) {}
     }
 
-    // Sync all matching buttons for this photo (both desktop overlay and mobile button)
-    document.querySelectorAll(`[data-filename="${filename}"]`).forEach((btn) => {
-      if (btn.classList.contains('btn-fav') || btn.classList.contains('card-mobile-fav')) {
-        btn.classList.toggle('active', !isFav);
-        const svg = btn.querySelector('svg');
-        if (svg) {
-          if (btn.classList.contains('card-mobile-fav')) {
-            svg.setAttribute('fill', !isFav ? '#fff' : 'none');
-          } else {
-            svg.setAttribute('fill', !isFav ? '#e53e3e' : 'none');
-          }
-        }
+    // Sync all matching elements for this photo (desktop overlay buttons and subtle card badges)
+    document.querySelectorAll(`[data-filename="${filename}"]`).forEach((el) => {
+      if (el.classList.contains('card-fav-badge')) {
+        el.classList.toggle('visible', !isFav);
+      } else if (el.classList.contains('btn-fav')) {
+        el.classList.toggle('active', !isFav);
+        const svg = el.querySelector('svg');
+        if (svg) svg.setAttribute('fill', !isFav ? '#e53e3e' : 'none');
       }
     });
 
