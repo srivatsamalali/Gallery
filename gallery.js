@@ -1589,6 +1589,7 @@
 
     const token = localStorage.getItem('gh_token');
     const folderName = album.folder || album.title;
+    const stagedSnap = [...state.stagedFiles];
 
     showToast('Uploading to Folder', `Processing ${state.stagedFiles.length} photo(s) for "${folderName}"...`, '⏳', 4000);
 
@@ -1630,7 +1631,8 @@
 
     // If GitHub token is saved, commit directly to repo contents
     if (token) {
-      showToast('GitHub Sync Active', `Committing files directly to GitHub repo...`, '🚀', 5000);
+      showToast('GitHub Sync Active', `Committing ${stagedSnap.length} file(s) directly to GitHub repo...`, '🚀', 6000);
+      syncStagedFilesToGitHub(token, folderName, stagedSnap);
     } else {
       showToast(
         'Staged in Gallery',
@@ -1638,6 +1640,76 @@
         '✅',
         6000
       );
+    }
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function syncStagedFilesToGitHub(token, folderName, files) {
+    let successCount = 0;
+    for (let i = 0; i < files.length; i++) {
+      const item = files[i];
+      const repoPath = `${folderName}/${item.name}`;
+      try {
+        const base64Content = await readFileAsBase64(item.file);
+        
+        // Check for existing sha
+        let sha = null;
+        try {
+          const checkRes = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodeURIComponent(repoPath)}?ref=main`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+            },
+          });
+          if (checkRes.ok) {
+            const data = await checkRes.json();
+            sha = data.sha;
+          }
+        } catch (e) {}
+
+        const payload = {
+          message: `feat(media): add ${item.name} to ${folderName}`,
+          content: base64Content,
+          branch: 'main',
+        };
+        if (sha) payload.sha = sha;
+
+        const res = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodeURIComponent(repoPath)}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          successCount++;
+        } else {
+          console.error('Failed to commit file:', item.name, await res.text());
+        }
+      } catch (err) {
+        console.error('Sync error on file:', item.name, err);
+      }
+    }
+
+    if (successCount > 0) {
+      showToast('GitHub Sync Success', `Successfully pushed ${successCount} file(s) to GitHub main branch!`, '🎉', 5000);
+    } else {
+      showToast('Sync Failed', 'Could not push files. Check token validity or use python3 admin.py.', '⚠️', 5000);
     }
   }
 
