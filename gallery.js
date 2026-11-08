@@ -1,5 +1,7 @@
+// @ts-nocheck
+/* global ALBUMS_DATA, PHOTOS_DATA, JSZip */
 /**
- * Baby Showers - Original Quality Photo Gallery Engine
+ * Life Through the Lens - Photo Heritage Gallery Engine
  * Nikon Z6 III High Fidelity Originals • Full Download & Preview System
  */
 
