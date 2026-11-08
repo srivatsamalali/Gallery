@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Baby Showers — Original Quality Photo Gallery</title>
   <meta name="description" content="Baby Showers celebration photo album in full 24 MP original resolution (Nikon Z6 III). Browse, preview, and download original untouched photos.">
-  <meta name="theme-color" content="#fbf9f6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#12100f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#fbf9f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="format-detection" content="telephone=no">
@@ -28,15 +27,6 @@
   <!-- Hero Header Section -->
   <header class="hero">
     <div class="container">
-      <!-- Top Action Strip: Theme Toggle -->
-      <div class="hero-top-strip">
-        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark/light theme" title="Toggle Studio Dark / Light Mode">
-          <span class="theme-icon sun-icon">☀️</span>
-          <span class="theme-icon moon-icon">🌙</span>
-          <span class="theme-text" id="theme-text">Dark Mode</span>
-        </button>
-      </div>
-
       <div class="hero-badge-wrap">
         <div class="hero-badge">
           <span>🍼</span> Welcoming Our Little Blessing
@@ -112,9 +102,14 @@
 
         <!-- Right Side Actions & Layout Toggle -->
         <div class="bar-actions">
-          <!-- Sort Dropdown -->
-          <select id="sort-select" class="action-btn" title="Sort Photos">
-            <option value="default">Timeline (Default)</option>
+          <!-- View & Timeline Filter Dropdown -->
+          <select id="sort-select" class="action-btn" title="Sort or Filter by Timeline Phase">
+            <option value="default">Timeline (All Photos • 277)</option>
+            <option value="time-10">🌅 10:30 AM — Arrivals & Setup (2)</option>
+            <option value="time-11">🌸 11:00 AM — Welcoming Rituals (74)</option>
+            <option value="time-12">🪔 12:00 PM — Traditions & Blessings (71)</option>
+            <option value="time-13">👨‍👩‍👧 1:00 PM — Family Portraits (95)</option>
+            <option value="time-14">🎉 2:00 PM — Feast & Candids (35)</option>
             <option value="filename-asc">Photo Name (A → Z)</option>
             <option value="filename-desc">Photo Name (Z → A)</option>
             <option value="size-desc">Largest File Size</option>
@@ -163,39 +158,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Chronological Event Timeline Chapters -->
-  <section class="chapters-wrapper" id="chapters-wrapper">
-    <div class="container">
-      <div class="chapters-bar" id="chapters-bar">
-        <span class="chapters-label">📅 Event Timeline:</span>
-        <button class="chapter-pill active" data-chapter="all">
-          <span>All Day</span>
-          <span class="chapter-count">277</span>
-        </button>
-        <button class="chapter-pill" data-chapter="10">
-          <span>🌅 Arrivals & Setup</span>
-          <span class="chapter-time">10:30 AM</span>
-        </button>
-        <button class="chapter-pill" data-chapter="11">
-          <span>🌸 Welcoming Rituals</span>
-          <span class="chapter-time">11:00 AM</span>
-        </button>
-        <button class="chapter-pill" data-chapter="12">
-          <span>🪔 Traditions & Blessings</span>
-          <span class="chapter-time">12:00 PM</span>
-        </button>
-        <button class="chapter-pill" data-chapter="13">
-          <span>👨‍👩‍👧 Family Portraits</span>
-          <span class="chapter-time">1:00 PM</span>
-        </button>
-        <button class="chapter-pill" data-chapter="14">
-          <span>🎉 Feast & Candids</span>
-          <span class="chapter-time">2:00 PM</span>
-        </button>
-      </div>
-    </div>
-  </section>
 
   <!-- Gallery Grid Section -->
   <main class="gallery-section">

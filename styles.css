@@ -49,41 +49,6 @@
   --transition-spring: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Studio OLED Dark Mode */
-body[data-theme="dark"] {
-  --bg-main: #0c0b0a;
-  --bg-card: #161514;
-  --bg-card-subtle: #1f1d1a;
-  --bg-glass: rgba(22, 21, 20, 0.88);
-  --bg-glass-dark: rgba(10, 9, 8, 0.96);
-
-  --text-primary: #f5f3ef;
-  --text-secondary: #a8a29a;
-  --text-muted: #787168;
-  --text-light: #ffffff;
-
-  --accent-gold: #e5b94c;
-  --accent-gold-hover: #f3ca65;
-  --accent-gold-soft: #2a2213;
-  --accent-rose: #e68d85;
-  --accent-rose-soft: #321e1c;
-  --accent-sage: #759a80;
-  --accent-sage-soft: #1d2b22;
-
-  --border-light: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(229, 185, 76, 0.6);
-
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 18px 40px -10px rgba(0, 0, 0, 0.7);
-  --shadow-hover: 0 22px 48px -8px rgba(0, 0, 0, 0.85);
-  --shadow-glow: 0 0 30px rgba(229, 185, 76, 0.3);
-}
-
-body {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
 /* Base & Reset */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -1990,118 +1955,10 @@ body::before {
 }
 
 /* ==========================================================================
-   New Enhancement Styles: Theme, Timeline, EXIF, Ken Burns, ZIP
+   Enhancement Styles: EXIF Specs, Ken Burns, Ambient Audio, ZIP
    ========================================================================== */
 
-/* 1. Theme Toggle Top Strip */
-.hero-top-strip {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.theme-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-full);
-  color: var(--text-primary);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.theme-toggle-btn:hover {
-  border-color: var(--accent-gold);
-  transform: translateY(-1px);
-}
-
-.sun-icon { display: none; }
-.moon-icon { display: inline-block; }
-
-body[data-theme="dark"] .sun-icon { display: inline-block; }
-body[data-theme="dark"] .moon-icon { display: none; }
-
-/* 2. Timeline Chapters Bar */
-.chapters-wrapper {
-  margin-top: 14px;
-  margin-bottom: 24px;
-}
-
-.chapters-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 8px 4px;
-}
-
-.chapters-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.chapters-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  white-space: nowrap;
-  margin-right: 4px;
-}
-
-.chapter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-full);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-}
-
-.chapter-pill:hover {
-  border-color: var(--accent-gold);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.chapter-pill.active {
-  background: var(--accent-gold);
-  border-color: var(--accent-gold);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(201, 158, 50, 0.35);
-}
-
-.chapter-count, .chapter-time {
-  font-size: 0.72rem;
-  opacity: 0.85;
-  background: rgba(0, 0, 0, 0.08);
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-}
-
-.chapter-pill.active .chapter-count,
-.chapter-pill.active .chapter-time {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* 3. Ken Burns Slideshow Effect */
+/* 1. Ken Burns Slideshow Effect */
 @keyframes kenBurns {
   0% { transform: scale(1) translate(0, 0); }
   50% { transform: scale(1.06) translate(-1%, -1%); }
