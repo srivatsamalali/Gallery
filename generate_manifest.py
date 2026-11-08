@@ -134,10 +134,30 @@ def scan_albums():
 
         # Check for photo files
         files = sorted([f for f in os.listdir(full_path) if f.upper().endswith(VALID_EXTENSIONS)])
+        album_id = slugify(entry)
+
         if not files:
+            desc = "Portraits & romantic golden hour moments." if "wedding" in entry.lower() else "Upcoming photo collection. Original photos being prepared for upload."
+            album_meta = {
+                'id': album_id,
+                'title': entry,
+                'folder': entry,
+                'description': desc,
+                'date': 'Upcoming 2026',
+                'photoCount': 0,
+                'portraitsCount': 0,
+                'landscapesCount': 0,
+                'totalSizeBytes': 0,
+                'totalSizeFormatted': '0 MB',
+                'coverThumb': '',
+                'coverOriginal': '',
+                'camera': 'Nikon Z6 III',
+                'status': 'upcoming',
+                'photos': []
+            }
+            albums.append(album_meta)
             continue
 
-        album_id = slugify(entry)
         print(f'Found Album Folder "{entry}": {len(files)} photos')
 
         def process_one(filename):
@@ -175,6 +195,7 @@ def scan_albums():
             'coverThumb': cover_photo['thumbUrl'] if cover_photo else '',
             'coverOriginal': cover_photo['originalUrl'] if cover_photo else '',
             'camera': cover_photo['camera'] if cover_photo else 'Nikon Z6 III',
+            'status': 'active',
             'photos': photos
         }
         albums.append(album_meta)
