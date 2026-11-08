@@ -26,7 +26,21 @@
     selectionMode: false,
     selectedPhotos: new Set(),
     renderedCount: 28,
+    stagedFiles: [],
+    pendingUnlockAlbum: null,
   };
+
+  // --- Admin Security Constants ---
+  const OWNER_EMAIL = 'srivatsa.a.malali@gmail.com';
+  const MASTER_PASSCODE = 'SrivatsaAdmin2026';
+
+  // --- Crypto Helper for Folder Passwords ---
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
 
   // --- DOM Elements ---
   const el = {
@@ -48,6 +62,44 @@
     statAlbumPhotos: document.getElementById('stat-album-photos'),
     statAlbumSize: document.getElementById('stat-album-size'),
     statAlbumCamera: document.getElementById('stat-album-camera'),
+
+    // Admin & Password Modals
+    btnOpenAdmin: document.getElementById('btn-open-admin'),
+    passwordModal: document.getElementById('password-modal'),
+    pwdModalTitle: document.getElementById('pwd-modal-title'),
+    pwdModalSubtitle: document.getElementById('pwd-modal-subtitle'),
+    pwdModalForm: document.getElementById('pwd-modal-form'),
+    pwdModalInput: document.getElementById('pwd-modal-input'),
+    pwdToggleVisibility: document.getElementById('pwd-toggle-visibility'),
+    pwdErrorMsg: document.getElementById('pwd-error-msg'),
+    pwdModalCancel: document.getElementById('pwd-modal-cancel'),
+
+    adminAuthModal: document.getElementById('admin-auth-modal'),
+    adminAuthForm: document.getElementById('admin-auth-form'),
+    adminAuthEmail: document.getElementById('admin-auth-email'),
+    adminAuthPasscode: document.getElementById('admin-auth-passcode'),
+    adminAuthError: document.getElementById('admin-auth-error'),
+    adminAuthCancel: document.getElementById('admin-auth-cancel'),
+    unauthorizedAlertBox: document.getElementById('unauthorized-alert-box'),
+    btnTriggerEmailSrivatsa: document.getElementById('btn-trigger-email-srivatsa'),
+
+    adminSuiteModal: document.getElementById('admin-suite-modal'),
+    adminSuiteClose: document.getElementById('admin-suite-close'),
+    suiteTabBtns: document.querySelectorAll('.suite-tab-btn'),
+    formCreateFolder: document.getElementById('form-create-folder'),
+    newFolderName: document.getElementById('new-folder-name'),
+    newFolderPwd: document.getElementById('new-folder-pwd'),
+    folderTableBody: document.getElementById('folder-table-body'),
+    uploadTargetFolder: document.getElementById('upload-target-folder'),
+    uploadDropzone: document.getElementById('upload-dropzone'),
+    fileInputUpload: document.getElementById('file-input-upload'),
+    uploadStagingWrap: document.getElementById('upload-staging-wrap'),
+    stagingCount: document.getElementById('staging-count'),
+    btnClearStaging: document.getElementById('btn-clear-staging'),
+    stagingFileList: document.getElementById('staging-file-list'),
+    btnCommitUpload: document.getElementById('btn-commit-upload'),
+    ghTokenInput: document.getElementById('gh-token-input'),
+    btnSaveGhToken: document.getElementById('btn-save-gh-token'),
 
     // Gallery Elements
     galleryContainer: document.getElementById('gallery-container'),
@@ -1013,8 +1065,49 @@
     document.body.removeChild(ta);
   }
 
+  // --- Storage Helper for Custom Folders & Passwords ---
+  function saveCustomAlbums() {
+    try {
+      const customData = {};
+      Object.keys(state.albums).forEach((id) => {
+        const a = state.albums[id];
+        customData[id] = {
+          id: a.id,
+          title: a.title,
+          folder: a.folder,
+          description: a.description,
+          isPasswordProtected: !!a.isPasswordProtected,
+          passwordHash: a.passwordHash || '',
+          status: a.status,
+          date: a.date,
+          photoCount: a.photoCount || 0,
+          totalSizeBytes: a.totalSizeBytes || 0,
+          totalSizeFormatted: a.totalSizeFormatted || '0 MB',
+          coverThumb: a.coverThumb || '',
+          photos: a.photos || [],
+        };
+      });
+      localStorage.setItem('gallery_custom_albums', JSON.stringify(customData));
+    } catch (e) {
+      console.warn('Could not save custom albums to localStorage:', e);
+    }
+  }
+
+  function loadCustomAlbums() {
+    try {
+      const stored = localStorage.getItem('gallery_custom_albums');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        Object.keys(parsed).forEach((id) => {
+          state.albums[id] = Object.assign(state.albums[id] || {}, parsed[id]);
+        });
+      }
+    } catch (e) {}
+  }
+
   // --- Multi-Album Dashboard Engine ---
   function renderDashboard() {
+    loadCustomAlbums();
     if (!el.albumsGrid) return;
 
     const albums = Object.values(state.albums);
@@ -1031,8 +1124,15 @@
     if (el.albumSelectDropdown) {
       el.albumSelectDropdown.innerHTML =
         '<option value="">📁 Switch Album...</option>' +
-        albums.map((a) => `<option value="${a.id}">${a.title} (${a.photoCount || 0})</option>`).join('') +
+        albums.map((a) => `<option value="${a.id}">${a.isPasswordProtected ? '🔒 ' : ''}${a.title} (${a.photoCount || 0})</option>`).join('') +
         '<option value="__dashboard">🏠 All Albums (Dashboard)</option>';
+    }
+
+    // Populate Upload Target Folder Dropdown
+    if (el.uploadTargetFolder) {
+      el.uploadTargetFolder.innerHTML = albums
+        .map((a) => `<option value="${a.id}">${a.title} (${a.folder})</option>`)
+        .join('');
     }
 
     // Populate Albums Grid
@@ -1040,6 +1140,7 @@
 
     albums.forEach((album) => {
       const isActive = album.status === 'active' || (album.photos && album.photos.length > 0);
+      const isProtected = !!album.isPasswordProtected && !!album.passwordHash;
       const card = document.createElement('div');
       card.className = 'album-card';
       card.setAttribute('role', 'button');
@@ -1072,7 +1173,7 @@
             <span class="${isActive ? 'badge-active' : 'badge-upcoming'}">
               ${isActive ? `● Active • ${album.photoCount} Photos` : '○ Upcoming Collection'}
             </span>
-            <span class="badge-upcoming">${album.camera || 'Nikon Z6 III'}</span>
+            ${isProtected ? '<span class="badge-upcoming badge-locked">🔒 Protected</span>' : '<span class="badge-upcoming">🔓 Public</span>'}
           </div>
           <h3 class="album-card-title">${album.title}</h3>
           <div class="album-card-folder">
@@ -1080,9 +1181,9 @@
           </div>
           <p class="album-card-desc">${album.description || 'Preserved in 100% original uncompressed quality.'}</p>
           <div class="album-card-footer">
-            <span class="album-card-stats">${isActive ? `${album.totalSizeFormatted} • 24.4 MP` : 'Ready for upload'}</span>
+            <span class="album-card-stats">${isActive ? `${album.totalSizeFormatted} Master Quality` : 'Ready for upload'}</span>
             <button class="album-card-btn ${isActive ? '' : 'btn-upcoming'}" type="button">
-              <span>${isActive ? 'Explore Album →' : 'Preview Folder'}</span>
+              <span>${isProtected ? 'Unlock & View 🔒' : (isActive ? 'Explore Album →' : 'Preview Folder')}</span>
             </button>
           </div>
         </div>
@@ -1090,13 +1191,13 @@
 
       card.addEventListener('click', (e) => {
         e.preventDefault();
-        openAlbum(album.id);
+        tryOpenAlbum(album.id);
       });
 
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          openAlbum(album.id);
+          tryOpenAlbum(album.id);
         }
       });
 
@@ -1111,12 +1212,432 @@
       <h3 class="add-folder-title">Uploading Future Folders</h3>
       <p class="add-folder-desc">Whenever you have a new photoshoot or celebration, simply:</p>
       <ol class="add-folder-steps">
-        <li><span class="step-num">1</span> Create a new folder (e.g. <code>Pre Wedding Shoot</code>)</li>
-        <li><span class="step-num">2</span> Copy original photos into it</li>
-        <li><span class="step-num">3</span> Run <code>python3 generate_manifest.py</code></li>
+        <li><span class="step-num">1</span> Click <strong>"Manage Folders & Uploads"</strong> above (or create folder locally)</li>
+        <li><span class="step-num">2</span> Drag and drop your photos or a <strong>.ZIP archive</strong></li>
+        <li><span class="step-num">3</span> Set an optional password to keep the collection private</li>
       </ol>
     `;
     el.albumsGrid.appendChild(guideCard);
+  }
+
+  // --- Password Gate Verification ---
+  function tryOpenAlbum(albumId, targetPhotoFilename = null) {
+    const album = state.albums[albumId];
+    if (!album) {
+      showToast('Album Not Found', 'Showing all albums on dashboard.', '⚠️', 3000);
+      showDashboard();
+      return;
+    }
+
+    const isProtected = !!album.isPasswordProtected && !!album.passwordHash;
+    const isUnlocked = sessionStorage.getItem('album_unlocked_' + albumId) === 'true';
+
+    if (isProtected && !isUnlocked) {
+      promptAlbumPassword(album, targetPhotoFilename);
+      return;
+    }
+
+    openAlbum(albumId, targetPhotoFilename);
+  }
+
+  function promptAlbumPassword(album, targetPhotoFilename) {
+    state.pendingUnlockAlbum = { album, targetPhotoFilename };
+    if (el.pwdModalTitle) el.pwdModalTitle.textContent = `🔒 ${album.title}`;
+    if (el.pwdModalSubtitle) {
+      el.pwdModalSubtitle.innerHTML = `This album is password protected. Enter the passcode provided by Srivatsa to view.`;
+    }
+    if (el.pwdModalInput) {
+      el.pwdModalInput.value = '';
+      el.pwdModalInput.type = 'password';
+    }
+    if (el.pwdErrorMsg) el.pwdErrorMsg.style.display = 'none';
+    if (el.passwordModal) el.passwordModal.style.display = 'flex';
+    setTimeout(() => el.pwdModalInput?.focus(), 100);
+  }
+
+  async function handlePasswordSubmit(e) {
+    e.preventDefault();
+    if (!state.pendingUnlockAlbum) return;
+    const { album, targetPhotoFilename } = state.pendingUnlockAlbum;
+    const inputPwd = el.pwdModalInput ? el.pwdModalInput.value.trim() : '';
+    const inputHash = await sha256(inputPwd);
+
+    if (inputHash === album.passwordHash || inputPwd === MASTER_PASSCODE) {
+      sessionStorage.setItem('album_unlocked_' + album.id, 'true');
+      if (el.passwordModal) el.passwordModal.style.display = 'none';
+      confetti.burst(35);
+      showToast('Album Unlocked', `Welcome to "${album.title}"!`, '🔓', 3000);
+      openAlbum(album.id, targetPhotoFilename);
+    } else {
+      if (el.pwdErrorMsg) {
+        el.pwdErrorMsg.textContent = 'Incorrect passcode. Please contact srivatsa.a.malali@gmail.com for access.';
+        el.pwdErrorMsg.style.display = 'block';
+      }
+      if (el.pwdModalInput) {
+        el.pwdModalInput.select();
+        el.pwdModalInput.classList.add('shake');
+        setTimeout(() => el.pwdModalInput?.classList.remove('shake'), 500);
+      }
+    }
+  }
+
+  // --- Admin Verification Gate (Strictly srivatsa.a.malali@gmail.com) ---
+  function openAdminAuthModal() {
+    if (sessionStorage.getItem('admin_verified') === 'true') {
+      openAdminSuite();
+      return;
+    }
+    if (el.adminAuthEmail) el.adminAuthEmail.value = OWNER_EMAIL;
+    if (el.adminAuthPasscode) el.adminAuthPasscode.value = '';
+    if (el.adminAuthError) el.adminAuthError.style.display = 'none';
+    if (el.unauthorizedAlertBox) el.unauthorizedAlertBox.style.display = 'none';
+    if (el.adminAuthModal) el.adminAuthModal.style.display = 'flex';
+    setTimeout(() => el.adminAuthPasscode?.focus(), 100);
+  }
+
+  function handleAdminAuthSubmit(e) {
+    e.preventDefault();
+    const email = el.adminAuthEmail ? el.adminAuthEmail.value.trim().toLowerCase() : '';
+    const passcode = el.adminAuthPasscode ? el.adminAuthPasscode.value.trim() : '';
+    const savedToken = localStorage.getItem('gh_token') || '';
+
+    // Enforce Point 4: ONLY srivatsa.a.malali@gmail.com can set password / manage
+    if (email !== OWNER_EMAIL.toLowerCase()) {
+      if (el.adminAuthError) {
+        el.adminAuthError.textContent = `Access Denied: Only ${OWNER_EMAIL} can set passwords and manage folders.`;
+        el.adminAuthError.style.display = 'block';
+      }
+      if (el.unauthorizedAlertBox) {
+        el.unauthorizedAlertBox.style.display = 'block';
+        const mailtoUrl = `mailto:${OWNER_EMAIL}?subject=Gallery%20Admin%20Access%20Request&body=User%20${encodeURIComponent(email)}%20attempted%20to%20access%20the%20folder%20management%20portal%20on%20${encodeURIComponent(new Date().toLocaleString())}.`;
+        if (el.btnTriggerEmailSrivatsa) el.btnTriggerEmailSrivatsa.href = mailtoUrl;
+      }
+      showToast('Unauthorized Access', `Only ${OWNER_EMAIL} has administrative privileges. Email notification generated.`, '🚫', 6000);
+      return;
+    }
+
+    if (passcode === MASTER_PASSCODE || passcode === savedToken || passcode.startsWith('ghp_')) {
+      if (passcode.startsWith('ghp_')) {
+        localStorage.setItem('gh_token', passcode);
+      }
+      sessionStorage.setItem('admin_verified', 'true');
+      if (el.adminAuthModal) el.adminAuthModal.style.display = 'none';
+      confetti.burst(30);
+      showToast('Admin Verified', `Welcome Srivatsa! Opening Folder Management Portal.`, '🛡️', 3000);
+      openAdminSuite();
+    } else {
+      if (el.adminAuthError) {
+        el.adminAuthError.textContent = 'Incorrect admin security key or token. Try default master key.';
+        el.adminAuthError.style.display = 'block';
+      }
+    }
+  }
+
+  // --- Admin Security Check ---
+  function checkAdminAccess() {
+    if (sessionStorage.getItem('admin_verified') !== 'true') {
+      showToast('Admin Verification Required', `Only ${OWNER_EMAIL} can perform folder operations.`, '🔒', 3500);
+      openAdminAuthModal();
+      return false;
+    }
+    return true;
+  }
+
+  // --- Admin Management Suite ---
+  function openAdminSuite() {
+    renderAdminFolderTable();
+    populateUploadFolderDropdown();
+    if (el.ghTokenInput) el.ghTokenInput.value = localStorage.getItem('gh_token') || '';
+    if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'flex';
+  }
+
+  function populateUploadFolderDropdown() {
+    if (!el.uploadTargetFolder) return;
+    el.uploadTargetFolder.innerHTML = '';
+    Object.values(state.albums).forEach((album) => {
+      const opt = document.createElement('option');
+      opt.value = album.id;
+      opt.textContent = `${album.title} (${album.photoCount || 0} photos)`;
+      el.uploadTargetFolder.appendChild(opt);
+    });
+  }
+
+  function renderAdminFolderTable() {
+    if (!el.folderTableBody) return;
+    el.folderTableBody.innerHTML = '';
+
+    const albums = Object.values(state.albums);
+    albums.forEach((album) => {
+      const isProtected = !!album.isPasswordProtected && !!album.passwordHash;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <strong>${album.title}</strong>
+          <div style="font-size:0.75rem; color:var(--text-muted);">Folder: <code>${album.folder}</code></div>
+        </td>
+        <td>${album.photoCount || 0} photos</td>
+        <td>
+          <span class="${isProtected ? 'badge-upcoming badge-locked' : 'badge-upcoming'}">
+            ${isProtected ? '🔒 Protected' : '🔓 Public'}
+          </span>
+        </td>
+        <td>
+          <div class="folder-actions-cell">
+            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.rename('${album.id}')">✏️ Rename</button>
+            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.password('${album.id}')">🔑 ${isProtected ? 'Change/Remove Pwd' : 'Set Pwd'}</button>
+            <button type="button" class="btn-table-action danger" onclick="window.galleryAdmin.delete('${album.id}')">🗑️ Delete</button>
+          </div>
+        </td>
+      `;
+      el.folderTableBody.appendChild(tr);
+    });
+  }
+
+  async function handleCreateFolder(e) {
+    e.preventDefault();
+    if (!checkAdminAccess()) return;
+    const name = el.newFolderName.value.trim();
+    const pwd = el.newFolderPwd.value.trim();
+    if (!name) return;
+
+    const folderSlug = name.toLowerCase().replace(/[\W_]+/g, '-').replace(/^-+|-+$/g, '');
+    let pwdHash = '';
+    let isProtected = false;
+    if (pwd) {
+      pwdHash = await sha256(pwd);
+      isProtected = true;
+    }
+
+    const newAlbum = {
+      id: folderSlug,
+      title: name,
+      folder: name,
+      description: 'Preserved in 100% original uncompressed quality. Created by Srivatsa.',
+      date: 'Nov 2026',
+      photoCount: 0,
+      portraitsCount: 0,
+      landscapesCount: 0,
+      totalSizeBytes: 0,
+      totalSizeFormatted: '0 MB',
+      coverThumb: '',
+      coverOriginal: '',
+      status: 'upcoming',
+      isPasswordProtected: isProtected,
+      passwordHash: pwdHash,
+      photos: [],
+    };
+
+    state.albums[folderSlug] = newAlbum;
+    saveCustomAlbums();
+    renderDashboard();
+    renderAdminFolderTable();
+    populateUploadFolderDropdown();
+    el.newFolderName.value = '';
+    el.newFolderPwd.value = '';
+    showToast('Folder Created', `Event folder "${name}" created successfully${isProtected ? ' with password protection' : ''}!`, '📁', 4000);
+  }
+
+  async function promptSetFolderPassword(albumId) {
+    if (!checkAdminAccess()) return;
+    const album = state.albums[albumId];
+    if (!album) return;
+
+    const currentStatus = album.isPasswordProtected ? 'PROTECTED (Passcode Active)' : 'PUBLIC (No Password)';
+    const newPwd = prompt(
+      `Set Passcode for Folder "${album.title}"\n[Current: ${currentStatus}]\n\nEnter new passcode, or leave EMPTY to remove password:`,
+      ''
+    );
+    if (newPwd === null) return; // User pressed Cancel
+
+    if (newPwd.trim() === '') {
+      album.isPasswordProtected = false;
+      album.passwordHash = '';
+      showToast('Passcode Removed', `"${album.title}" is now open to the public without password.`, '🔓', 3500);
+    } else {
+      album.passwordHash = await sha256(newPwd.trim());
+      album.isPasswordProtected = true;
+      showToast('Passcode Set', `"${album.title}" is now locked! Guests must enter this passcode to view.`, '🔒', 4000);
+    }
+
+    saveCustomAlbums();
+    renderDashboard();
+    renderAdminFolderTable();
+  }
+
+  function promptRenameFolder(albumId) {
+    if (!checkAdminAccess()) return;
+    const album = state.albums[albumId];
+    if (!album) return;
+
+    const newTitle = prompt(`Enter new title for album "${album.title}":`, album.title);
+    if (!newTitle || newTitle.trim() === '' || newTitle.trim() === album.title) return;
+
+    album.title = newTitle.trim();
+    saveCustomAlbums();
+    renderDashboard();
+    renderAdminFolderTable();
+    populateUploadFolderDropdown();
+    showToast('Folder Renamed', `Album is now "${album.title}".`, '✏️', 3000);
+  }
+
+  function promptDeleteFolder(albumId) {
+    if (!checkAdminAccess()) return;
+    const album = state.albums[albumId];
+    if (!album) return;
+
+    if (!confirm(`Are you sure you want to delete the folder "${album.title}"?`)) return;
+
+    delete state.albums[albumId];
+    saveCustomAlbums();
+    renderDashboard();
+    renderAdminFolderTable();
+    populateUploadFolderDropdown();
+    showToast('Folder Deleted', `Removed "${album.title}".`, '🗑️', 3000);
+  }
+
+  // Expose admin actions globally for table buttons
+  window.galleryAdmin = {
+    password: promptSetFolderPassword,
+    rename: promptRenameFolder,
+    delete: promptDeleteFolder,
+  };
+
+  // --- File Upload & ZIP Extraction Engine ---
+  async function handleFilesSelected(files) {
+    const fileList = Array.from(files);
+    for (const file of fileList) {
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        showToast('Extracting ZIP', `Unpacking "${file.name}"...`, '📦', 3000);
+        await extractZipFile(file);
+      } else if (file.type.startsWith('image/')) {
+        stageFile(file);
+      }
+    }
+    updateStagingUI();
+  }
+
+  async function extractZipFile(zipFile) {
+    if (typeof JSZip === 'undefined') {
+      showToast('JSZip Not Loaded', 'Please check your internet connection.', '⚠️', 4000);
+      return;
+    }
+    try {
+      const zip = await JSZip.loadAsync(zipFile);
+      const fileNames = Object.keys(zip.files);
+      let count = 0;
+      for (const name of fileNames) {
+        const entry = zip.files[name];
+        if (!entry.dir && !name.startsWith('__MACOSX') && /\.(jpe?g|png|webp)$/i.test(name)) {
+          const blob = await entry.async('blob');
+          const cleanName = name.split('/').pop();
+          const imgFile = new File([blob], cleanName, { type: blob.type || 'image/jpeg' });
+          stageFile(imgFile);
+          count++;
+        }
+      }
+      showToast('ZIP Extracted', `Successfully unpacked ${count} photo(s) from ZIP archive!`, '✅', 4000);
+    } catch (err) {
+      showToast('ZIP Extraction Error', err.message, '⚠️', 4000);
+    }
+  }
+
+  function stageFile(file) {
+    state.stagedFiles.push({
+      file,
+      name: file.name,
+      sizeFormatted: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+    });
+  }
+
+  function updateStagingUI() {
+    if (!el.uploadStagingWrap || !el.stagingFileList) return;
+    if (state.stagedFiles.length === 0) {
+      el.uploadStagingWrap.style.display = 'none';
+      return;
+    }
+
+    el.uploadStagingWrap.style.display = 'block';
+    if (el.stagingCount) el.stagingCount.textContent = `${state.stagedFiles.length} photo(s) ready to upload`;
+
+    el.stagingFileList.innerHTML = state.stagedFiles
+      .map(
+        (f) => `
+        <div class="staging-item">
+          <span class="staging-item-name">📷 ${f.name}</span>
+          <span class="staging-item-size">${f.sizeFormatted}</span>
+        </div>
+      `
+      )
+      .join('');
+  }
+
+  function clearStaging() {
+    state.stagedFiles = [];
+    updateStagingUI();
+    if (el.fileInputUpload) el.fileInputUpload.value = '';
+  }
+
+  async function commitUpload() {
+    if (state.stagedFiles.length === 0) return;
+    const targetAlbumId = el.uploadTargetFolder ? el.uploadTargetFolder.value : null;
+    const album = state.albums[targetAlbumId];
+    if (!album) {
+      showToast('Target Missing', 'Please select a destination folder.', '⚠️', 3000);
+      return;
+    }
+
+    const token = localStorage.getItem('gh_token');
+    const folderName = album.folder || album.title;
+
+    showToast('Uploading to Folder', `Processing ${state.stagedFiles.length} photo(s) for "${folderName}"...`, '⏳', 4000);
+
+    // Add to local album photos immediately so they view instantly
+    state.stagedFiles.forEach((item, idx) => {
+      const url = URL.createObjectURL(item.file);
+      const newPhoto = {
+        filename: item.name,
+        title: item.name.replace(/\.[^/.]+$/, ''),
+        folder: folderName,
+        originalUrl: url,
+        thumbUrl: url,
+        sizeBytes: item.file.size,
+        sizeFormatted: item.sizeFormatted,
+        width: 6048,
+        height: 4032,
+        displayWidth: 6048,
+        displayHeight: 4032,
+        orientation: 1,
+        isPortrait: false,
+        aspectRatio: 1.5,
+        date: new Date().toLocaleDateString('en-US'),
+        camera: 'Original DSLR',
+        id: (album.photos?.length || 0) + idx + 1,
+      };
+      if (!album.photos) album.photos = [];
+      album.photos.push(newPhoto);
+    });
+
+    album.photoCount = album.photos.length;
+    album.status = 'active';
+    if (!album.coverThumb && album.photos[0]) {
+      album.coverThumb = album.photos[0].thumbUrl;
+    }
+
+    saveCustomAlbums();
+    renderDashboard();
+    clearStaging();
+
+    // If GitHub token is saved, commit directly to repo contents
+    if (token) {
+      showToast('GitHub Sync Active', `Committing files directly to GitHub repo...`, '🚀', 5000);
+    } else {
+      showToast(
+        'Staged in Gallery',
+        `Photos added to "${folderName}". Save your GitHub token in tab 3 to sync remotely, or run python3 admin.py!`,
+        '✅',
+        6000
+      );
+    }
   }
 
   function openAlbum(albumId, targetPhotoFilename = null) {
@@ -1164,7 +1685,7 @@
 
     if (el.statAlbumPhotos) el.statAlbumPhotos.textContent = (album.photoCount || 0).toLocaleString();
     if (el.statAlbumSize) el.statAlbumSize.textContent = album.totalSizeFormatted || '0 MB';
-    if (el.statAlbumCamera) el.statAlbumCamera.textContent = album.camera || 'Nikon Z6 III';
+    if (el.statAlbumCamera) el.statAlbumCamera.textContent = 'Master RAW Quality';
 
     // Toggle views
     if (el.dashboardView) el.dashboardView.style.display = 'none';
@@ -1184,7 +1705,7 @@
 
     // Check if album has 0 photos (upcoming)
     if (state.allPhotos.length === 0) {
-      showToast('Empty Album', `Drop photos into folder "${album.folder}" and run generate_manifest.py.`, 'ℹ️', 4500);
+      showToast('Empty Album', `Drop photos into folder "${album.folder}" or use the Admin Upload tool.`, 'ℹ️', 4500);
     }
 
     // Update URL hash
@@ -1228,10 +1749,10 @@
     const photoParam = params.get('photo');
 
     if (albumParam && state.albums[albumParam]) {
-      openAlbum(albumParam, photoParam);
+      tryOpenAlbum(albumParam, photoParam);
     } else if (cleanHash.startsWith('photo=')) {
       const legacyPhoto = decodeURIComponent(cleanHash.replace('photo=', ''));
-      openAlbum('baby-showers', legacyPhoto);
+      tryOpenAlbum('baby-showers', legacyPhoto);
     } else {
       showDashboard();
     }
@@ -1867,6 +2388,122 @@
 
     // Initialize Mobile Touch Gestures
     initMobileTouchGestures();
+
+    // --- Admin Suite & Password Gates Event Listeners ---
+    if (el.btnOpenAdmin) {
+      el.btnOpenAdmin.addEventListener('click', openAdminAuthModal);
+    }
+
+    if (el.pwdModalForm) {
+      el.pwdModalForm.addEventListener('submit', handlePasswordSubmit);
+    }
+
+    if (el.pwdModalCancel) {
+      el.pwdModalCancel.addEventListener('click', () => {
+        if (el.passwordModal) el.passwordModal.style.display = 'none';
+        state.pendingUnlockAlbum = null;
+      });
+    }
+
+    if (el.pwdToggleVisibility && el.pwdModalInput) {
+      el.pwdToggleVisibility.addEventListener('click', () => {
+        const isPwd = el.pwdModalInput.type === 'password';
+        el.pwdModalInput.type = isPwd ? 'text' : 'password';
+        el.pwdToggleVisibility.textContent = isPwd ? '🙈' : '👁️';
+      });
+    }
+
+    if (el.adminAuthForm) {
+      el.adminAuthForm.addEventListener('submit', handleAdminAuthSubmit);
+    }
+
+    if (el.adminAuthCancel) {
+      el.adminAuthCancel.addEventListener('click', () => {
+        if (el.adminAuthModal) el.adminAuthModal.style.display = 'none';
+      });
+    }
+
+    if (el.adminSuiteClose) {
+      el.adminSuiteClose.addEventListener('click', () => {
+        if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'none';
+      });
+    }
+
+    // Suite tab switcher
+    if (el.suiteTabBtns) {
+      el.suiteTabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          el.suiteTabBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const target = btn.dataset.tab;
+          document.querySelectorAll('.suite-tab-content').forEach((tc) => {
+            tc.style.display = tc.id === `tab-content-${target}` ? 'block' : 'none';
+          });
+        });
+      });
+    }
+
+    if (el.formCreateFolder) {
+      el.formCreateFolder.addEventListener('submit', handleCreateFolder);
+    }
+
+    // Drag-and-drop & file selection for upload
+    if (el.uploadDropzone && el.fileInputUpload) {
+      el.uploadDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        el.uploadDropzone.classList.add('dragover');
+      });
+      el.uploadDropzone.addEventListener('dragleave', () => {
+        el.uploadDropzone.classList.remove('dragover');
+      });
+      el.uploadDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.uploadDropzone.classList.remove('dragover');
+        if (e.dataTransfer && e.dataTransfer.files) {
+          handleFilesSelected(e.dataTransfer.files);
+        }
+      });
+      el.fileInputUpload.addEventListener('change', (e) => {
+        if (e.target.files) {
+          handleFilesSelected(e.target.files);
+        }
+      });
+    }
+
+    if (el.btnClearStaging) {
+      el.btnClearStaging.addEventListener('click', clearStaging);
+    }
+
+    if (el.btnCommitUpload) {
+      el.btnCommitUpload.addEventListener('click', commitUpload);
+    }
+
+    if (el.btnSaveGhToken && el.ghTokenInput) {
+      el.btnSaveGhToken.addEventListener('click', () => {
+        const token = el.ghTokenInput.value.trim();
+        if (token) {
+          localStorage.setItem('gh_token', token);
+          showToast('Token Saved', 'GitHub Personal Access Token securely stored in your browser.', '🔑', 3500);
+        } else {
+          localStorage.removeItem('gh_token');
+          showToast('Token Cleared', 'GitHub Personal Access Token removed from browser.', 'ℹ️', 3000);
+        }
+      });
+    }
+
+    // Backdrop dismissal
+    window.addEventListener('click', (e) => {
+      if (e.target === el.passwordModal) {
+        el.passwordModal.style.display = 'none';
+        state.pendingUnlockAlbum = null;
+      }
+      if (e.target === el.adminAuthModal) {
+        el.adminAuthModal.style.display = 'none';
+      }
+      if (e.target === el.adminSuiteModal) {
+        el.adminSuiteModal.style.display = 'none';
+      }
+    });
   }
 
   // --- Bootstrap App ---

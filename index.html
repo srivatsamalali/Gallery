@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Srivatsa's Photo Vault — Original Quality Archives</title>
-  <meta name="description" content="Celebration photo archives in full 24 MP original resolution (Nikon Z6 III). Browse, preview, and download original untouched photos. Created by Srivatsa.">
+  <meta name="description" content="Celebration photo archives in full original resolution. Browse, preview, and download original untouched photos. Created by Srivatsa.">
   <meta name="theme-color" content="#fbf9f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -57,7 +57,7 @@
         </div>
         <h1 class="dash-title">Original Quality <span>Photo Vault</span></h1>
         <p class="dash-description">
-          A timeless collection of celebratory moments, preserved in bit-for-bit uncompressed original quality (Nikon Z6 III • 24.4 MP). Select an album below to explore high-definition previews and download original photos.
+          A timeless collection of celebratory moments, preserved in bit-for-bit uncompressed original quality. Select an album below to explore high-definition previews and download original photos.
           <span class="hero-creator-tag">✨ Created by Srivatsa</span>
         </p>
 
@@ -75,9 +75,9 @@
             <span class="stat-icon">💾</span>
             <span><strong id="dash-storage-count">4.61 GB</strong> Master Quality</span>
           </div>
-          <div class="stat-pill" title="Primary Camera System">
+          <div class="stat-pill" title="Master RAW Fidelity">
             <span class="stat-icon">✨</span>
-            <span><strong>Nikon Z6 III</strong> Sensor</span>
+            <span><strong>Master RAW</strong> Quality</span>
           </div>
         </div>
       </div>
@@ -90,6 +90,15 @@
           <div class="section-title-wrap">
             <h2 class="section-heading">Event Folders & Collections</h2>
             <p class="section-subheading">Choose any event collection to browse its full high-resolution gallery and download originals</p>
+          </div>
+          <div class="section-actions">
+            <button type="button" id="btn-open-admin" class="btn-admin-manage" title="Manage Folders, Passwords, and Uploads">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span>Manage Folders & Uploads</span>
+            </button>
           </div>
         </div>
 
@@ -137,7 +146,7 @@
         </div>
         <h1 class="hero-title" id="album-title">Baby <span>Showers</span></h1>
         <p class="hero-description" id="album-description">
-          A timeless collection of 277 moments, captured on the Nikon Z6 III and preserved in bit-for-bit uncompressed original quality. Anyone with this link can view in large preview and download any original photo.
+          A timeless collection of 277 moments, preserved in bit-for-bit uncompressed original quality. Anyone with this link can view in large preview and download any original photo.
           <span class="hero-creator-tag">✨ Created by Srivatsa</span>
         </p>
 
@@ -153,11 +162,11 @@
           </div>
           <div class="stat-pill" title="Full native camera resolution">
             <span class="stat-icon">📐</span>
-            <span><strong>6048 × 4032</strong> (24.4 MP)</span>
+            <span><strong>6048 × 4032</strong> Resolution</span>
           </div>
-          <div class="stat-pill" title="Nikon Z6 III Camera">
+          <div class="stat-pill" title="Master Quality">
             <span class="stat-icon">✨</span>
-            <span id="stat-album-camera"><strong>Nikon Z6 III</strong> Sensor</span>
+            <span id="stat-album-camera"><strong>Master RAW</strong> Quality</span>
           </div>
         </div>
       </div>
@@ -463,12 +472,183 @@
     </svg>
   </button>
 
+  <!-- =========================================================================
+       PASSWORD PROMPT MODAL (For Locked Folders)
+       ========================================================================= -->
+  <div id="password-modal" class="custom-modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="custom-modal-dialog">
+      <div class="modal-icon-wrap lock-icon-wrap">🔒</div>
+      <h3 class="modal-title" id="pwd-modal-title">Private Collection</h3>
+      <p class="modal-subtitle" id="pwd-modal-subtitle">This album is protected. Enter the passcode provided by Srivatsa to view photos.</p>
+      
+      <form id="pwd-modal-form" class="modal-form">
+        <div class="form-group">
+          <div class="password-input-wrap">
+            <input type="password" id="pwd-modal-input" class="form-input" placeholder="Enter folder passcode..." autocomplete="current-password" required />
+            <button type="button" id="pwd-toggle-visibility" class="btn-eye" title="Toggle visibility">👁️</button>
+          </div>
+          <div id="pwd-error-msg" class="form-error-msg" style="display: none;"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="pwd-modal-cancel" class="modal-btn secondary">Cancel</button>
+          <button type="submit" id="pwd-modal-submit" class="modal-btn primary">Unlock Album</button>
+        </div>
+      </form>
+
+      <div class="modal-footer-note">
+        <span>Need access? </span>
+        <a href="mailto:srivatsa.a.malali@gmail.com?subject=Access%20Request%20for%20Private%20Gallery%20Folder&body=Hi%20Srivatsa%2C%0A%0AI%20would%20like%20to%20request%20the%20passcode%20to%20view%20your%20private%20album.%0A%0AThank%20you!" class="modal-link">Request passcode from Srivatsa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       ADMIN AUTHENTICATION MODAL (Strictly for srivatsa.a.malali@gmail.com)
+       ========================================================================= -->
+  <div id="admin-auth-modal" class="custom-modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="custom-modal-dialog">
+      <div class="modal-icon-wrap admin-icon-wrap">🛡️</div>
+      <h3 class="modal-title">Admin Verification</h3>
+      <p class="modal-subtitle">Only the owner (<strong class="highlight-email">srivatsa.a.malali@gmail.com</strong>) can manage folders, upload photos, or set passwords.</p>
+      
+      <form id="admin-auth-form" class="modal-form">
+        <div class="form-group">
+          <label class="form-label">Admin Email Address</label>
+          <input type="email" id="admin-auth-email" class="form-input" value="srivatsa.a.malali@gmail.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Admin Security Passcode or GitHub Token</label>
+          <input type="password" id="admin-auth-passcode" class="form-input" placeholder="Enter master key or GitHub token..." required />
+          <span class="form-hint">Default master passcode: <code>SrivatsaAdmin2026</code></span>
+          <div id="admin-auth-error" class="form-error-msg" style="display: none;"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="admin-auth-cancel" class="modal-btn secondary">Cancel</button>
+          <button type="submit" id="admin-auth-submit" class="modal-btn primary">Verify & Open Suite</button>
+        </div>
+      </form>
+
+      <div id="unauthorized-alert-box" class="unauthorized-alert-box" style="display: none;">
+        <p>⚠️ <strong>Unauthorized Access Attempt</strong></p>
+        <p>Only Srivatsa is authorized to modify gallery folders and passwords.</p>
+        <a id="btn-trigger-email-srivatsa" href="#" class="modal-btn outline-gold">📧 Notify / Email Srivatsa</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       FOLDER & UPLOAD MANAGEMENT SUITE MODAL
+       ========================================================================= -->
+  <div id="admin-suite-modal" class="custom-modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="custom-modal-dialog suite-dialog">
+      <div class="suite-header">
+        <div class="suite-title-wrap">
+          <div class="admin-verified-badge"><span>✓ Verified Admin:</span> srivatsa.a.malali@gmail.com</div>
+          <h2 class="suite-title">Folder Management & Upload Portal</h2>
+        </div>
+        <button type="button" id="admin-suite-close" class="modal-close-x" title="Close">✕</button>
+      </div>
+
+      <!-- Suite Navigation Tabs -->
+      <div class="suite-tabs">
+        <button class="suite-tab-btn active" data-tab="folders">📁 Folders & Passwords</button>
+        <button class="suite-tab-btn" data-tab="upload">📤 Upload Photos & ZIP</button>
+        <button class="suite-tab-btn" data-tab="sync">🔄 Sync to GitHub</button>
+      </div>
+
+      <!-- Tab 1: Folders & Passwords -->
+      <div class="suite-tab-content active" id="tab-content-folders">
+        <div class="suite-section-box">
+          <h4 class="box-title">Create New Event Folder</h4>
+          <form id="form-create-folder" class="create-folder-grid">
+            <input type="text" id="new-folder-name" class="form-input" placeholder="Folder Name (e.g. Pre Wedding Shoot)" required />
+            <input type="password" id="new-folder-pwd" class="form-input" placeholder="Password (Optional, blank = public)" />
+            <button type="submit" class="modal-btn primary">➕ Create Folder</button>
+          </form>
+          <p class="form-hint">Tip: If password is left blank, folder is open to everyone. If password is set, guests must enter it to view.</p>
+        </div>
+
+        <div class="suite-section-box">
+          <h4 class="box-title">Existing Event Folders</h4>
+          <div class="folder-list-table-wrap">
+            <table class="folder-table">
+              <thead>
+                <tr>
+                  <th>Folder / Album Title</th>
+                  <th>Photos</th>
+                  <th>Protection</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="folder-table-body">
+                <!-- Dynamically generated rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Upload Photos & ZIP Archives -->
+      <div class="suite-tab-content" id="tab-content-upload" style="display: none;">
+        <div class="suite-section-box">
+          <h4 class="box-title">Upload Photos to Folder</h4>
+          <div class="form-group">
+            <label class="form-label">Select Destination Folder:</label>
+            <select id="upload-target-folder" class="form-input">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <!-- Drag and drop zone -->
+          <div class="upload-dropzone" id="upload-dropzone">
+            <div class="dropzone-icon">📥</div>
+            <p class="dropzone-main-text">Drag & drop photos or a <strong>.ZIP file</strong> here</p>
+            <p class="dropzone-sub-text">Supports JPEG, PNG, WEBP and ZIP archives (auto-extracted)</p>
+            <label class="btn-browse-files">
+              <span>Browse Photos or ZIP</span>
+              <input type="file" id="file-input-upload" multiple accept="image/*,.zip" style="display: none;" />
+            </label>
+          </div>
+
+          <!-- File upload staging list -->
+          <div id="upload-staging-wrap" class="upload-staging-wrap" style="display: none;">
+            <div class="staging-header">
+              <span id="staging-count">0 files staged</span>
+              <button type="button" id="btn-clear-staging" class="text-btn">Clear all</button>
+            </div>
+            <div id="staging-file-list" class="staging-file-list"></div>
+            <button type="button" id="btn-commit-upload" class="modal-btn primary full-width">🚀 Upload & Land in Repo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: GitHub Sync Settings -->
+      <div class="suite-tab-content" id="tab-content-sync" style="display: none;">
+        <div class="suite-section-box">
+          <h4 class="box-title">GitHub Repository Sync (Direct Web Deployment)</h4>
+          <p class="box-desc">To publish new folders and photos directly from the browser to your GitHub repo without using terminal, paste your GitHub Personal Access Token below (saved securely in your local browser only):</p>
+          <div class="form-group">
+            <label class="form-label">GitHub Personal Access Token (repo scope)</label>
+            <input type="password" id="gh-token-input" class="form-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+            <span class="form-hint">Stored only in your personal browser's localStorage. Never transmitted elsewhere.</span>
+          </div>
+          <button type="button" id="btn-save-gh-token" class="modal-btn primary">Save GitHub Token</button>
+          
+          <div class="local-cli-tip">
+            <h5>💻 Local Terminal Companion Tool:</h5>
+            <p>You can also run <code>python3 admin.py</code> locally on your Mac anytime to create folders, drop multi-GB files, and sync with one command!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="gallery-footer">
     <div class="container">
       <div class="footer-logo">Photo <span>Vault</span></div>
       <p class="footer-meta">
-        Original full-resolution photography archives • Captured with Nikon Z6 III (24.4 Megapixels) • Zero compression applied • Created by Srivatsa.
+        Original full-resolution photography archives • Preserved in bit-for-bit uncompressed master quality • Zero compression applied • Created by Srivatsa.
       </p>
       <div class="footer-badge">
         Hosted on GitHub Pages • Original File Size Preserved • Created by Srivatsa
