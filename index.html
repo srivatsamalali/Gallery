@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>Baby Showers — Original Quality Photo Gallery</title>
+  <meta name="description" content="Baby Showers celebration photo album in full 24 MP original resolution (Nikon Z6 III). Browse, preview, and download original untouched photos.">
+  <meta name="theme-color" content="#fbf9f6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12100f" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍼</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Scroll Progress Indicator -->
+  <div id="scroll-progress"></div>
+
+  <!-- Confetti Celebration Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Hero Header Section -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge-wrap">
+        <div class="hero-badge">
+          <span>🍼</span> Welcoming Our Little Blessing
+        </div>
+      </div>
+      <h1 class="hero-title">Baby <span>Showers</span></h1>
+      <p class="hero-description">
+        A timeless collection of 277 moments, captured on the Nikon Z6 III and preserved in bit-for-bit uncompressed original quality. Anyone with this link can view in large preview and download any original photo.
+      </p>
+
+      <!-- Stats / Quality Badges -->
+      <div class="hero-stats">
+        <div class="stat-pill" title="Every photo in the album">
+          <span class="stat-icon">📸</span>
+          <span><strong>277</strong> Original Photos</span>
+        </div>
+        <div class="stat-pill" title="Original DSLR raw JPEG quality without compression">
+          <span class="stat-icon">💾</span>
+          <span><strong>4.61 GB</strong> Total Quality</span>
+        </div>
+        <div class="stat-pill" title="Full native camera resolution">
+          <span class="stat-icon">📐</span>
+          <span><strong>6048 × 4032</strong> (24.4 MP)</span>
+        </div>
+        <div class="stat-pill" title="Nikon Z6 III Camera">
+          <span class="stat-icon">✨</span>
+          <span><strong>Nikon Z6 III</strong> Sensor</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Controls & Filters Bar -->
+  <div class="sticky-bar-wrapper">
+    <div class="container">
+      <div class="control-bar" id="control-bar">
+        <!-- Live Search -->
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            id="search-input"
+            class="search-input"
+            placeholder="Search by photo # (e.g. 316)..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" id="search-clear-btn" class="search-clear-btn" aria-label="Clear search" title="Clear search">✕</button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs" role="tablist">
+          <button class="tab-btn active" data-filter="all" role="tab">
+            <span>All Photos</span>
+            <span class="tab-count" id="count-all">277</span>
+          </button>
+          <button class="tab-btn" data-filter="portrait" role="tab">
+            <span>Portraits</span>
+            <span class="tab-count" id="count-portrait">42</span>
+          </button>
+          <button class="tab-btn" data-filter="landscape" role="tab">
+            <span>Landscapes</span>
+            <span class="tab-count" id="count-landscape">235</span>
+          </button>
+          <button class="tab-btn" data-filter="favorites" role="tab">
+            <span>❤️ Liked</span>
+            <span class="tab-count" id="count-favorites">0</span>
+          </button>
+        </div>
+
+        <!-- Right Side Actions & Layout Toggle -->
+        <div class="bar-actions">
+          <!-- Sort Dropdown -->
+          <select id="sort-select" class="action-btn" title="Sort Photos">
+            <option value="default">Timeline (Default)</option>
+            <option value="filename-asc">Photo Name (A → Z)</option>
+            <option value="filename-desc">Photo Name (Z → A)</option>
+            <option value="size-desc">Largest File Size</option>
+            <option value="size-asc">Smallest File Size</option>
+          </select>
+
+          <!-- Slideshow Button -->
+          <button id="btn-slideshow" class="action-btn" title="Start auto-playing full-screen slideshow">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span>Slideshow</span>
+          </button>
+
+          <!-- Batch Select Button -->
+          <button id="btn-select-mode" class="action-btn" title="Select multiple photos to download together">
+            <span>☑️ Select Photos</span>
+          </button>
+
+          <!-- Layout Switcher (Masonry, Grid, Stream) -->
+          <div class="layout-switcher">
+            <button class="layout-btn active" data-layout="masonry" title="Masonry View (Natural proportions)">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="11"></rect>
+                <rect x="14" y="3" width="7" height="6"></rect>
+                <rect x="14" y="12" width="7" height="9"></rect>
+                <rect x="3" y="17" width="7" height="4"></rect>
+              </svg>
+            </button>
+            <button class="layout-btn" data-layout="grid" title="Square Grid View">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+            <button class="layout-btn" data-layout="stream" title="Editorial Stream View">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="7"></rect>
+                <rect x="3" y="14" width="18" height="7"></rect>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gallery Grid Section -->
+  <main class="gallery-section">
+    <div class="container">
+      <div id="gallery-container" class="gallery-container layout-masonry">
+        <!-- Dynamically rendered photo cards -->
+      </div>
+
+      <!-- No Results State -->
+      <div id="no-results" class="no-results">
+        <div class="no-results-icon">🔍</div>
+        <h3>No Photos Found</h3>
+        <p>No photos matched your search query or filter selection.</p>
+        <button class="action-btn primary" onclick="document.getElementById('search-input').value = ''; document.querySelector('.tab-btn[data-filter=\'all\']').click();">
+          Reset Filters
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Fullscreen Lightbox / Large Preview Modal -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo Preview">
+    <!-- Mobile Dismiss Swipe Bar Indicator -->
+    <div class="lightbox-swipe-bar" id="lb-swipe-bar" title="Swipe down to close"></div>
+
+    <!-- Lightbox Header -->
+    <div class="lightbox-header">
+      <div class="lightbox-title-wrap">
+        <button class="lightbox-icon-btn mobile-back-btn" id="lb-mobile-back" title="Back to gallery (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="lightbox-title" id="lb-title">DSC_0306</div>
+        <div class="lightbox-counter" id="lb-counter">1 of 277</div>
+        <div class="lightbox-quality-pill" id="lb-quality-pill">Nikon Z6 III • 21.2 MB</div>
+      </div>
+      <div class="lightbox-actions">
+        <button class="lightbox-icon-btn" id="lb-zoom-btn" title="Toggle 100% Full Resolution Zoom (Z)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </button>
+        <button class="lightbox-icon-btn" id="lb-fav-btn" title="Like / Favorite this photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
+        <button class="lightbox-icon-btn" id="lb-slideshow-btn" title="Play / Pause Slideshow (Space)">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+        <button class="lightbox-icon-btn" id="lb-fullscreen-btn" title="Toggle Fullscreen (F)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        </button>
+        <button class="lightbox-icon-btn" id="lb-close" title="Close Preview (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lightbox Main Stage -->
+    <div class="lightbox-stage">
+      <button class="lightbox-nav-btn prev" id="lb-prev" title="Previous photo (←)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="lightbox-img-container" id="lb-img-container">
+        <img id="lb-img" class="lightbox-img" src="" alt="Baby Shower preview" />
+      </div>
+
+      <button class="lightbox-nav-btn next" id="lb-next" title="Next photo (→)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Lightbox Footer & Original Download CTA -->
+    <div class="lightbox-footer">
+      <div class="lightbox-details-row">
+        <!-- EXIF Info Tags -->
+        <div class="lightbox-exif-tags">
+          <span class="exif-tag" id="lb-camera-meta">📷 Nikon Z6 III</span>
+          <span class="exif-tag" id="lb-res-meta">📐 6048 × 4032 (24.4 MP)</span>
+          <span class="exif-tag" id="lb-size-meta">💾 21.2 MB (Original)</span>
+          <span class="exif-tag" id="lb-date-meta">📅 Nov 6, 2026</span>
+        </div>
+
+        <!-- Prominent Download CTA -->
+        <button class="lightbox-download-cta" id="lb-download-cta">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download Original Quality</span>
+        </button>
+      </div>
+
+      <!-- Mini Filmstrip Carousel -->
+      <div class="lightbox-filmstrip" id="lb-filmstrip"></div>
+    </div>
+  </div>
+
+  <!-- Batch Selection Floating Drawer -->
+  <div id="batch-drawer" class="batch-drawer">
+    <div class="batch-info" id="batch-count-text">
+      <strong>0</strong> photos selected
+    </div>
+    <div class="batch-actions">
+      <button class="batch-download-btn" id="batch-download-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download Selected</span>
+      </button>
+      <button class="batch-cancel-btn" id="batch-cancel-btn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Floating Back to Top Button -->
+  <button id="back-to-top" class="back-to-top" title="Back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
+
+  <!-- Footer -->
+  <footer class="gallery-footer">
+    <div class="container">
+      <div class="footer-logo">Baby <span>Showers</span></div>
+      <p class="footer-meta">
+        277 original full-resolution photographs • Captured with Nikon Z6 III (24.4 Megapixels) • Zero compression applied.
+      </p>
+      <div class="footer-badge">
+        Hosted on GitHub Pages • Original File Size Preserved
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="photos-data.js"></script>
+  <script src="gallery.js"></script>
+</body>
+</html>
+
