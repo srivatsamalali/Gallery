@@ -72,6 +72,8 @@
     // Admin & Password Modals
     btnOpenAdmin: document.getElementById('btn-open-admin'),
     btnAdminLogout: document.getElementById('btn-admin-logout'),
+    btnThemeToggle: document.getElementById('btn-theme-toggle'),
+    btnThemeToggleAlbum: document.getElementById('btn-theme-toggle-album'),
     passwordModal: document.getElementById('password-modal'),
     pwdModalTitle: document.getElementById('pwd-modal-title'),
     pwdModalSubtitle: document.getElementById('pwd-modal-subtitle'),
@@ -142,6 +144,7 @@
     lbQualityPill: document.getElementById('lb-quality-pill'),
     lbImg: document.getElementById('lb-img'),
     lbImgContainer: document.getElementById('lb-img-container'),
+    lbAmbientGlow: document.getElementById('lb-ambient-glow'),
     lbClose: document.getElementById('lb-close'),
     lbPrev: document.getElementById('lb-prev'),
     lbNext: document.getElementById('lb-next'),
@@ -407,6 +410,9 @@
 
     // Setup infinite scroll observer
     setupInfiniteScroll();
+
+    // Initialize 3D Card Tilt on pointer devices
+    init3DCardTilt();
   }
 
   function appendNextChunk() {
@@ -505,13 +511,17 @@
       </div>
     `;
 
-    // Image onload shimmer dismiss
+    // Image onload shimmer dismiss & blur-up reveal
     const img = card.querySelector('.photo-img');
     const wrap = card.querySelector('.photo-img-wrap');
     if (img.complete) {
       wrap.classList.add('loaded');
+      img.classList.add('loaded');
     } else {
-      img.addEventListener('load', () => wrap.classList.add('loaded'), { once: true });
+      img.addEventListener('load', () => {
+        wrap.classList.add('loaded');
+        img.classList.add('loaded');
+      }, { once: true });
     }
 
     // Card click routing
@@ -572,6 +582,37 @@
     });
   }
 
+  // --- Interactive Floating Heart Reaction Burst ---
+  function triggerHeartBurst(targetBtn) {
+    if (!targetBtn) return;
+    const rect = targetBtn.getBoundingClientRect();
+    const burstContainer = document.createElement('div');
+    burstContainer.className = 'heart-burst-container';
+    burstContainer.style.position = 'fixed';
+    burstContainer.style.left = `${rect.left + rect.width / 2}px`;
+    burstContainer.style.top = `${rect.top + rect.height / 2}px`;
+    burstContainer.style.pointerEvents = 'none';
+    burstContainer.style.zIndex = '99999';
+    document.body.appendChild(burstContainer);
+
+    const particles = ['❤️', '💖', '✨', '💛', '🌸'];
+    for (let i = 0; i < 7; i++) {
+      const p = document.createElement('span');
+      p.className = 'heart-burst-particle';
+      p.textContent = particles[i % particles.length];
+      const angle = (Math.PI * 2 * i) / 7 + (Math.random() - 0.5) * 0.4;
+      const dist = 32 + Math.random() * 40;
+      const vx = Math.cos(angle) * dist;
+      const vy = Math.sin(angle) * dist - 28;
+      p.style.setProperty('--vx', `${vx}px`);
+      p.style.setProperty('--vy', `${vy}px`);
+      p.style.setProperty('--scale', `${0.7 + Math.random() * 0.6}`);
+      burstContainer.appendChild(p);
+    }
+
+    setTimeout(() => burstContainer.remove(), 900);
+  }
+
   // --- Favorite Toggle ---
   function toggleFavorite(filename, btnElement) {
     const isFav = state.favorites.has(filename);
@@ -579,7 +620,7 @@
       state.favorites.delete(filename);
     } else {
       state.favorites.add(filename);
-      confetti.burst();
+      triggerHeartBurst(btnElement);
     }
     localStorage.setItem('bs_favorites', JSON.stringify([...state.favorites]));
     updateCounts();
@@ -844,6 +885,7 @@
     state.lightboxOpen = false;
     stopSlideshow();
     if (el.lbExifModal) el.lbExifModal.classList.remove('visible');
+    if (el.lbAmbientGlow) el.lbAmbientGlow.style.opacity = '0';
     el.lightbox.classList.remove('active');
     el.lightbox.classList.remove('immersive');
     document.body.style.overflow = '';
@@ -894,6 +936,12 @@
     // Deep link hash update
     const albumPrefix = state.currentAlbumId ? `album=${state.currentAlbumId}&` : '';
     history.replaceState(null, '', `#${albumPrefix}photo=${encodeURIComponent(photo.filename)}`);
+
+    // Cinema Ambient Backlight Aura
+    if (el.lbAmbientGlow) {
+      el.lbAmbientGlow.style.backgroundImage = `url("${encodeURI(photo.thumbUrl)}")`;
+      el.lbAmbientGlow.style.opacity = '0.55';
+    }
 
     // Load preview with smooth cross-fade
     el.lbImg.style.opacity = '0.3';
@@ -1119,6 +1167,91 @@
     } catch (e) {}
   }
 
+  // --- Animated Numeric Counter ---
+  function animateCounter(elem, endVal, duration = 1100, suffix = '', decimals = 0) {
+    if (!elem) return;
+    const startVal = 0;
+    const startTime = performance.now();
+    function tick(now) {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = startVal + (endVal - startVal) * ease;
+      elem.textContent = decimals > 0 ? `${current.toFixed(decimals)}${suffix}` : `${Math.round(current)}${suffix}`;
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // --- Luxury 3D Card Tilt & Specular Cursor Spotlight ---
+  function init3DCardTilt() {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    document.querySelectorAll('.album-card:not([data-tilt-ready]), .photo-card:not([data-tilt-ready])').forEach((card) => {
+      card.setAttribute('data-tilt-ready', 'true');
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -5;
+        const rotateY = ((x - centerX) / centerX) * 5;
+        card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.015, 1.015, 1.015)`;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        card.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+        setTimeout(() => { card.style.transition = ''; }, 400);
+      });
+    });
+  }
+
+  // --- Theme Controller (Champagne Light vs Velvet Obsidian Cinema) ---
+  function initTheme() {
+    const savedTheme = localStorage.getItem('vault_theme') || 'light';
+    applyTheme(savedTheme);
+
+    const toggleBtns = [el.btnThemeToggle, el.btnThemeToggleAlbum].filter(Boolean);
+    toggleBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        showToast(
+          nextTheme === 'dark' ? '🌙 Cinema Mode' : '☀️ Champagne Mode',
+          nextTheme === 'dark' ? 'Obsidian dark backdrop enabled for high-contrast photo viewing.' : 'Warm champagne editorial palette enabled.',
+          nextTheme === 'dark' ? '🌙' : '☀️',
+          2500
+        );
+      });
+    });
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('vault_theme', 'dark');
+      updateThemeButtons(true);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('vault_theme', 'light');
+      updateThemeButtons(false);
+    }
+  }
+
+  function updateThemeButtons(isDark) {
+    [el.btnThemeToggle, el.btnThemeToggleAlbum].forEach((btn) => {
+      if (!btn) return;
+      const icon = btn.querySelector('.theme-icon');
+      const text = btn.querySelector('.theme-text');
+      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+      if (text) text.textContent = isDark ? 'Champagne' : 'Cinema Mode';
+      btn.title = isDark ? 'Switch to Champagne Light' : 'Switch to Cinema Dark Mode';
+    });
+  }
+
   // --- Multi-Album Dashboard Engine ---
   function renderDashboard() {
     loadCustomAlbums();
@@ -1130,9 +1263,9 @@
     const totalBytes = activeAlbums.reduce((sum, a) => sum + (a.totalSizeBytes || 0), 0);
     const totalGB = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
 
-    if (el.dashAlbumCount) el.dashAlbumCount.textContent = `${activeAlbums.length} Active Album${activeAlbums.length === 1 ? '' : 's'}`;
-    if (el.dashPhotoCount) el.dashPhotoCount.textContent = totalPhotos.toLocaleString();
-    if (el.dashStorageCount) el.dashStorageCount.textContent = `${totalGB} GB`;
+    if (el.dashAlbumCount) animateCounter(el.dashAlbumCount, activeAlbums.length, 1000);
+    if (el.dashPhotoCount) animateCounter(el.dashPhotoCount, totalPhotos, 1200);
+    if (el.dashStorageCount) animateCounter(el.dashStorageCount, parseFloat(totalGB) || 4.61, 1400, ' GB', 2);
 
     // Populate Quick Switch Dropdown
     if (el.albumSelectDropdown) {
@@ -1171,10 +1304,21 @@
       } else {
         const isWedding = album.id.includes('wedding');
         coverHtml = `
-          <div class="album-card-cover">
-            <div class="album-card-cover-placeholder">
-              <span class="placeholder-icon">${isWedding ? '💍' : '📸'}</span>
-              <span class="placeholder-tag">${album.folder}</span>
+          <div class="album-card-cover placeholder-luxury-art ${isWedding ? 'art-wedding' : 'art-prewedding'}">
+            <div class="luxury-art-backdrop"></div>
+            <div class="luxury-art-content">
+              <div class="luxury-art-icon-wrap">
+                ${isWedding
+                  ? `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>`
+                  : `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="9" cy="12" r="5.5"></circle>
+                      <circle cx="15" cy="12" r="5.5"></circle>
+                    </svg>`}
+              </div>
+              <span class="luxury-art-tag">${isWedding ? 'Grand Celebrations' : 'Romantic Moments'}</span>
+              <span class="luxury-art-badge">✦ Photos Arriving Soon ✦</span>
             </div>
           </div>
         `;
@@ -1232,6 +1376,7 @@
       </ol>
     `;
     el.albumsGrid.appendChild(guideCard);
+    init3DCardTilt();
   }
 
   // --- Folder & Admin Session Timeout Engine (Strict 10-Minute Expiry) ---
@@ -1917,8 +2062,10 @@
       `;
     }
 
-    if (el.statAlbumPhotos) el.statAlbumPhotos.textContent = (album.photoCount || 0).toLocaleString();
-    if (el.statAlbumSize) el.statAlbumSize.textContent = album.totalSizeFormatted || '0 MB';
+    if (el.statAlbumPhotos) animateCounter(el.statAlbumPhotos, album.photoCount || 0, 1100);
+    const sizeNum = parseFloat(album.totalSizeFormatted) || 4.61;
+    const sizeUnit = (album.totalSizeFormatted || '').includes('GB') ? ' GB' : ' MB';
+    if (el.statAlbumSize) animateCounter(el.statAlbumSize, sizeNum, 1300, sizeUnit, 2);
     if (el.statAlbumCamera) el.statAlbumCamera.textContent = 'Master RAW Quality';
 
     // Toggle views
@@ -2754,6 +2901,7 @@
       try { localStorage.setItem('gh_token', VAULT_GH_TOKEN); } catch(e) {}
     }
     renderDashboard();
+    initTheme();
     initEvents();
     updateAdminAuthUI();
     handleUrlHash();

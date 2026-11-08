@@ -13,14 +13,16 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=3.6.0_mobile_timeout">
+  <link rel="stylesheet" href="styles.css?v=3.7.0_visual_enhancements">
   <script>
-    // Immediate reset to ensure pure warm champagne light theme
+    // Theme Engine: Instant load for pure warm champagne or obsidian cinema dark
     try {
-      localStorage.removeItem('bs_theme');
-      sessionStorage.removeItem('bs_theme');
-      document.documentElement.removeAttribute('data-theme');
-      if (document.body) document.body.removeAttribute('data-theme');
+      const savedTheme = localStorage.getItem('vault_theme') || 'light';
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
     } catch(e) {}
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -92,6 +94,10 @@
             <p class="section-subheading">Choose any event collection to browse its full high-resolution gallery and download originals</p>
           </div>
           <div class="section-actions">
+            <button type="button" id="btn-theme-toggle" class="btn-theme-toggle" title="Toggle Cinema Dark / Champagne Light Mode">
+              <span class="theme-icon">🌙</span>
+              <span class="theme-text">Cinema Mode</span>
+            </button>
             <button type="button" id="btn-open-admin" class="btn-admin-manage" title="Manage Folders, Passwords, and Uploads" onclick="window.galleryAdmin && window.galleryAdmin.openAdmin ? window.galleryAdmin.openAdmin() : (document.getElementById('admin-auth-modal').style.display='flex')">
               <span class="admin-gear-icon">⚙️</span>
               <span>Manage Folders & Uploads</span>
@@ -129,6 +135,9 @@
           <span class="breadcrumb-current" id="nav-album-title">Baby Showers</span>
         </div>
         <div class="album-quick-switch">
+          <button type="button" id="btn-theme-toggle-album" class="btn-theme-toggle" title="Toggle Cinema Dark / Champagne Light Mode">
+            <span class="theme-icon">🌙</span>
+          </button>
           <select id="album-select-dropdown" class="action-btn" title="Quick Switch Album">
             <!-- Populated dynamically -->
           </select>
@@ -399,6 +408,7 @@
       </button>
 
       <div class="lightbox-img-container" id="lb-img-container">
+        <div class="lightbox-ambient-glow" id="lb-ambient-glow"></div>
         <img id="lb-img" class="lightbox-img" src="" alt="Baby Shower preview" />
       </div>
 
@@ -641,8 +651,8 @@
   </footer>
 
   <!-- Scripts with Cache Busting -->
-  <script src="photos-data.js?v=3.6.0_mobile_timeout"></script>
-  <script src="gallery.js?v=3.6.0_mobile_timeout"></script>
+  <script src="photos-data.js?v=3.7.0_visual_enhancements"></script>
+  <script src="gallery.js?v=3.7.0_visual_enhancements"></script>
 </body>
 </html>
 
