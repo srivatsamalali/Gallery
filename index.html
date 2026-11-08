@@ -13,7 +13,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=3.3.0_logout">
+  <link rel="stylesheet" href="styles.css?v=3.5.0_direct_save">
   <script>
     // Immediate reset to ensure pure warm champagne light theme
     try {
@@ -556,8 +556,7 @@
       <!-- Suite Navigation Tabs -->
       <div class="suite-tabs">
         <button class="suite-tab-btn active" data-tab="folders">📁 Folders & Passwords</button>
-        <button class="suite-tab-btn" data-tab="upload">📤 Upload Photos & ZIP</button>
-        <button class="suite-tab-btn" data-tab="sync">🔄 Sync to GitHub</button>
+        <button class="suite-tab-btn" data-tab="upload">📤 Upload Photos & ZIP (Direct to GitHub)</button>
       </div>
 
       <!-- Tab 1: Folders & Passwords -->
@@ -567,9 +566,9 @@
           <form id="form-create-folder" class="create-folder-grid">
             <input type="text" id="new-folder-name" class="form-input" placeholder="Folder Name (e.g. Pre Wedding Shoot)" required />
             <input type="password" id="new-folder-pwd" class="form-input" placeholder="Password (Optional, blank = public)" />
-            <button type="submit" class="modal-btn primary">➕ Create Folder</button>
+            <button type="submit" class="modal-btn primary">➕ Create & Save Directly to GitHub</button>
           </form>
-          <p class="form-hint">Tip: If password is left blank, folder is open to everyone. If password is set, guests must enter it to view.</p>
+          <p class="form-hint">Tip: Folders and passwords save directly to your GitHub repository and deploy automatically. If password is blank, folder is public.</p>
         </div>
 
         <div class="suite-section-box">
@@ -592,10 +591,10 @@
         </div>
       </div>
 
-      <!-- Tab 2: Upload Photos & ZIP Archives -->
+      <!-- Tab 2: Upload Photos & ZIP Archives (Direct GitHub Save) -->
       <div class="suite-tab-content" id="tab-content-upload" style="display: none;">
         <div class="suite-section-box">
-          <h4 class="box-title">Upload Photos to Folder</h4>
+          <h4 class="box-title">Upload Photos Directly to GitHub Repository</h4>
           <div class="form-group">
             <label class="form-label">Select Destination Folder:</label>
             <select id="upload-target-folder" class="form-input">
@@ -607,7 +606,7 @@
           <div class="upload-dropzone" id="upload-dropzone">
             <div class="dropzone-icon">📥</div>
             <p class="dropzone-main-text">Drag & drop photos or a <strong>.ZIP file</strong> here</p>
-            <p class="dropzone-sub-text">Supports JPEG, PNG, WEBP and ZIP archives (auto-extracted)</p>
+            <p class="dropzone-sub-text">Supports JPEG, PNG, WEBP and ZIP archives (auto-extracted & pushed directly to GitHub)</p>
             <label class="btn-browse-files">
               <span>Browse Photos or ZIP</span>
               <input type="file" id="file-input-upload" multiple accept="image/*,.zip" style="display: none;" />
@@ -621,26 +620,7 @@
               <button type="button" id="btn-clear-staging" class="text-btn">Clear all</button>
             </div>
             <div id="staging-file-list" class="staging-file-list"></div>
-            <button type="button" id="btn-commit-upload" class="modal-btn primary full-width">🚀 Upload & Land in Repo</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab 3: GitHub Sync Settings -->
-      <div class="suite-tab-content" id="tab-content-sync" style="display: none;">
-        <div class="suite-section-box">
-          <h4 class="box-title">GitHub Repository Sync (Direct Web Deployment)</h4>
-          <p class="box-desc">To publish new folders and photos directly from the browser to your GitHub repo without using terminal, paste your GitHub Personal Access Token below (saved securely in your local browser only):</p>
-          <div class="form-group">
-            <label class="form-label">GitHub Personal Access Token (repo scope)</label>
-            <input type="password" id="gh-token-input" class="form-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
-            <span class="form-hint">Stored only in your personal browser's localStorage. Never transmitted elsewhere.</span>
-          </div>
-          <button type="button" id="btn-save-gh-token" class="modal-btn primary">Save GitHub Token</button>
-          
-          <div class="local-cli-tip">
-            <h5>💻 Local Terminal Companion Tool:</h5>
-            <p>You can also run <code>python3 admin.py</code> locally on your Mac anytime to create folders, drop multi-GB files, and sync with one command!</p>
+            <button type="button" id="btn-commit-upload" class="modal-btn primary full-width">🚀 Upload & Save Directly to GitHub</button>
           </div>
         </div>
       </div>
@@ -661,8 +641,8 @@
   </footer>
 
   <!-- Scripts with Cache Busting -->
-  <script src="photos-data.js?v=3.3.0_logout"></script>
-  <script src="gallery.js?v=3.3.0_logout"></script>
+  <script src="photos-data.js?v=3.5.0_direct_save"></script>
+  <script src="gallery.js?v=3.5.0_direct_save"></script>
 </body>
 </html>
 
