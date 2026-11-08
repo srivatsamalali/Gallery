@@ -13,7 +13,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=3.8.0_cinematic_contrast">
+  <link rel="stylesheet" href="styles.css?v=3.9.0_creative_popups">
   <script>
     // Theme Engine: Instant load for pure warm champagne or obsidian cinema dark
     try {
@@ -637,6 +637,44 @@
     </div>
   </div>
 
+  <!-- =========================================================================
+       CREATIVE ACTION POPUP MODAL (For Rename, Set Passcode, Delete Confirm)
+       ========================================================================= -->
+  <div id="action-popup-modal" class="custom-modal-backdrop action-popup-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="custom-modal-dialog action-popup-dialog">
+      <div class="modal-icon-wrap" id="popup-icon-wrap">
+        <span id="popup-icon">✨</span>
+      </div>
+
+      <h3 class="modal-title" id="popup-title">Action</h3>
+      <p class="modal-subtitle" id="popup-subtitle">Action details</p>
+
+      <div id="popup-status-badge" class="popup-status-badge" style="display: none;"></div>
+
+      <form id="popup-form" class="modal-form">
+        <div class="form-group" id="popup-input-group">
+          <label class="form-label" id="popup-input-label">Value</label>
+          <div class="password-input-wrap">
+            <input type="text" id="popup-input" class="form-input" autocomplete="off" />
+            <button type="button" id="popup-toggle-visibility" class="btn-eye" title="Toggle visibility" style="display: none;">👁️</button>
+          </div>
+          <div class="form-hint" id="popup-hint"></div>
+          <div id="popup-error-msg" class="form-error-msg" style="display: none;"></div>
+        </div>
+
+        <div id="popup-warning-box" class="popup-warning-box" style="display: none;">
+          <span class="warning-icon">⚠️</span>
+          <span id="popup-warning-text">This action cannot be undone.</span>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="popup-btn-cancel" class="modal-btn secondary">Cancel</button>
+          <button type="submit" id="popup-btn-confirm" class="modal-btn primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="gallery-footer">
     <div class="container">
@@ -651,8 +689,8 @@
   </footer>
 
   <!-- Scripts with Cache Busting -->
-  <script src="photos-data.js?v=3.8.0_photo_heritage"></script>
-  <script src="gallery.js?v=3.8.0_photo_heritage"></script>
+  <script src="photos-data.js?v=3.9.0_creative_popups"></script>
+  <script src="gallery.js?v=3.9.0_creative_popups"></script>
 </body>
 </html>
 
