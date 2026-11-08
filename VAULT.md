@@ -50,6 +50,33 @@ python3 admin.py
 
 ---
 
+## 🔑 4. How to Generate a GitHub Personal Access Token (`repo` scope)
+
+If you want to sync new folders and photos **directly from the web browser** without opening the terminal:
+
+1. Open this direct link in Chrome: **[https://github.com/settings/tokens/new](https://github.com/settings/tokens/new)**
+   *(Or navigate: GitHub -> Top-right Avatar -> Settings -> Developer settings -> Personal access tokens -> Tokens (classic) -> Generate new token (classic))*.
+2. In the **Note** box, enter: `Gallery Web Sync`.
+3. In **Expiration**, select `90 days` (or `No expiration`).
+4. Under **Select scopes**, check the box for **`repo`** (Full control of private and public repositories).
+5. Scroll down to the bottom and click the green **Generate token** button.
+6. Copy the token string (it begins with `ghp_...`).
+7. In the Gallery website, click **"⚙️ Manage Folders & Uploads"**, go to **Tab 3 ("GitHub Sync Settings")**, paste your token, and click **Save GitHub Token**.
+
+---
+
+## 🔄 5. How Files Sync with GitHub
+
+### Method A: Direct Web Browser Sync
+- When you create folders or upload photos/ZIP files via the web interface with your token saved, the gallery communicates directly with GitHub's REST API (`PUT /repos/srivatsamalali/Gallery/contents/...`) to commit the images to your repository.
+- GitHub Pages automatically detects the new commits and deploys them to the live website.
+
+### Method B: Local High-Speed Sync via `admin.py` (Recommended for Large / Multi-GB Sets)
+- Browsers have memory and network timeout limits when uploading several gigabytes of RAW DSLR images.
+- For large folders, running `python3 admin.py` in your Mac terminal transfers files instantly with zero latency, auto-extracts `.zip` archives, generates thumbnails, and synchronizes both `main` and `gh-pages` branches in a single step with option `[7]`. No token is required because your Mac Git is already authenticated!
+
+---
+
 ## 🌐 4. Live Gallery URLs
 
 - **Live GitHub Pages URL**: [https://srivatsamalali.github.io/Gallery/](https://srivatsamalali.github.io/Gallery/)
@@ -60,3 +87,4 @@ python3 admin.py
 
 ---
 *Created and maintained by Srivatsa.*
+
