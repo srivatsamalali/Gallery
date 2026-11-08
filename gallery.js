@@ -1752,16 +1752,216 @@
     showToast('Folder Created', `Event folder "${name}" created successfully${isProtected ? ' with password protection' : ''}!`, '📁', 4000);
   }
 
+  // --- Creative Luxury Action Popup Engine (Replaces ugly browser prompt/confirm) ---
+  function showCreativePrompt(options) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('action-popup-modal');
+      const iconWrap = document.getElementById('popup-icon-wrap');
+      const icon = document.getElementById('popup-icon');
+      const title = document.getElementById('popup-title');
+      const subtitle = document.getElementById('popup-subtitle');
+      const statusBadge = document.getElementById('popup-status-badge');
+      const inputGroup = document.getElementById('popup-input-group');
+      const inputLabel = document.getElementById('popup-input-label');
+      const input = document.getElementById('popup-input');
+      const toggleVis = document.getElementById('popup-toggle-visibility');
+      const hint = document.getElementById('popup-hint');
+      const errorMsg = document.getElementById('popup-error-msg');
+      const warningBox = document.getElementById('popup-warning-box');
+      const btnCancel = document.getElementById('popup-btn-cancel');
+      const btnConfirm = document.getElementById('popup-btn-confirm');
+      const form = document.getElementById('popup-form');
+
+      if (!modal) {
+        resolve(prompt(options.title + (options.subtitle ? '\n' + options.subtitle : ''), options.defaultValue || ''));
+        return;
+      }
+
+      icon.textContent = options.icon || '✨';
+      iconWrap.className = 'modal-icon-wrap ' + (options.iconClass || 'edit-icon-wrap');
+      title.textContent = options.title || '';
+      subtitle.textContent = options.subtitle || '';
+
+      if (options.statusBadge) {
+        statusBadge.innerHTML = options.statusBadge;
+        statusBadge.style.display = 'inline-flex';
+      } else {
+        statusBadge.style.display = 'none';
+        statusBadge.innerHTML = '';
+      }
+
+      inputGroup.style.display = 'block';
+      inputLabel.textContent = options.inputLabel || 'Value';
+      input.value = options.defaultValue || '';
+      input.placeholder = options.placeholder || '';
+      input.type = options.isPassword ? 'password' : 'text';
+      toggleVis.style.display = options.isPassword ? 'block' : 'none';
+      toggleVis.textContent = '👁️';
+
+      hint.textContent = options.hint || '';
+      hint.style.display = options.hint ? 'block' : 'none';
+      errorMsg.style.display = 'none';
+      warningBox.style.display = 'none';
+
+      btnConfirm.textContent = options.confirmText || 'Confirm';
+      btnConfirm.className = 'modal-btn primary';
+      btnCancel.textContent = options.cancelText || 'Cancel';
+
+      function cleanup() {
+        modal.style.display = 'none';
+        modal.removeEventListener('click', onBackdropClick);
+        document.removeEventListener('keydown', onKeyDown);
+        form.onsubmit = null;
+        btnCancel.onclick = null;
+        toggleVis.onclick = null;
+      }
+
+      function onBackdropClick(e) {
+        if (e.target === modal) {
+          cleanup();
+          resolve(null);
+        }
+      }
+
+      function onKeyDown(e) {
+        if (e.key === 'Escape') {
+          cleanup();
+          resolve(null);
+        }
+      }
+
+      toggleVis.onclick = () => {
+        if (input.type === 'password') {
+          input.type = 'text';
+          toggleVis.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          toggleVis.textContent = '👁️';
+        }
+      };
+
+      btnCancel.onclick = () => {
+        cleanup();
+        resolve(null);
+      };
+
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const val = input.value;
+        cleanup();
+        resolve(val);
+      };
+
+      modal.addEventListener('click', onBackdropClick);
+      document.addEventListener('keydown', onKeyDown);
+
+      modal.style.display = 'flex';
+      setTimeout(() => {
+        input.focus();
+        if (input.value) input.select();
+      }, 50);
+    });
+  }
+
+  function showCreativeConfirm(options) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('action-popup-modal');
+      const iconWrap = document.getElementById('popup-icon-wrap');
+      const icon = document.getElementById('popup-icon');
+      const title = document.getElementById('popup-title');
+      const subtitle = document.getElementById('popup-subtitle');
+      const statusBadge = document.getElementById('popup-status-badge');
+      const inputGroup = document.getElementById('popup-input-group');
+      const warningBox = document.getElementById('popup-warning-box');
+      const warningText = document.getElementById('popup-warning-text');
+      const btnCancel = document.getElementById('popup-btn-cancel');
+      const btnConfirm = document.getElementById('popup-btn-confirm');
+      const form = document.getElementById('popup-form');
+
+      if (!modal) {
+        resolve(confirm(options.title + (options.subtitle ? '\n' + options.subtitle : '')));
+        return;
+      }
+
+      icon.textContent = options.icon || '⚠️';
+      iconWrap.className = 'modal-icon-wrap ' + (options.iconClass || 'danger-icon-wrap');
+      title.textContent = options.title || 'Are you sure?';
+      subtitle.textContent = options.subtitle || '';
+
+      statusBadge.style.display = 'none';
+      inputGroup.style.display = 'none';
+
+      warningBox.style.display = 'flex';
+      warningText.textContent = options.warningText || 'This action cannot be undone.';
+
+      btnConfirm.textContent = options.confirmText || 'Confirm';
+      btnConfirm.className = options.isDanger ? 'modal-btn danger' : 'modal-btn primary';
+      btnCancel.textContent = options.cancelText || 'Cancel';
+
+      function cleanup() {
+        modal.style.display = 'none';
+        modal.removeEventListener('click', onBackdropClick);
+        document.removeEventListener('keydown', onKeyDown);
+        form.onsubmit = null;
+        btnCancel.onclick = null;
+      }
+
+      function onBackdropClick(e) {
+        if (e.target === modal) {
+          cleanup();
+          resolve(false);
+        }
+      }
+
+      function onKeyDown(e) {
+        if (e.key === 'Escape') {
+          cleanup();
+          resolve(false);
+        }
+      }
+
+      btnCancel.onclick = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        cleanup();
+        resolve(true);
+      };
+
+      modal.addEventListener('click', onBackdropClick);
+      document.addEventListener('keydown', onKeyDown);
+
+      modal.style.display = 'flex';
+      setTimeout(() => btnConfirm.focus(), 50);
+    });
+  }
+
   async function promptSetFolderPassword(albumId) {
     if (!checkAdminAccess()) return;
     const album = state.albums[albumId];
     if (!album) return;
 
-    const currentStatus = album.isPasswordProtected ? 'PROTECTED (Passcode Active)' : 'PUBLIC (No Password)';
-    const newPwd = prompt(
-      `Set Passcode for Folder "${album.title}"\n[Current: ${currentStatus}]\n\nEnter new passcode, or leave EMPTY to remove password:`,
-      ''
-    );
+    const currentStatus = album.isPasswordProtected
+      ? '<span class="badge-active-lock">🔒 Protected (Passcode Active)</span>'
+      : '<span class="badge-active-public">🌐 Public (No Passcode)</span>';
+
+    const newPwd = await showCreativePrompt({
+      icon: '🔒',
+      iconClass: 'lock-icon-wrap',
+      title: 'Folder Passcode Security',
+      subtitle: `Configure guest access passcode for "${album.title}".`,
+      statusBadge: currentStatus,
+      inputLabel: 'Folder Passcode',
+      defaultValue: '',
+      placeholder: 'Enter new passcode (or leave blank to remove)...',
+      hint: 'Leave empty and click "Save Passcode" to make this folder open to the public without a password.',
+      isPassword: true,
+      confirmText: 'Save Passcode'
+    });
+
     if (newPwd === null) return; // User pressed Cancel
 
     if (newPwd.trim() === '') {
@@ -1779,12 +1979,24 @@
     renderAdminFolderTable();
   }
 
-  function promptRenameFolder(albumId) {
+  async function promptRenameFolder(albumId) {
     if (!checkAdminAccess()) return;
     const album = state.albums[albumId];
     if (!album) return;
 
-    const newTitle = prompt(`Enter new title for album "${album.title}":`, album.title);
+    const newTitle = await showCreativePrompt({
+      icon: '✏️',
+      iconClass: 'edit-icon-wrap',
+      title: 'Rename Event Collection',
+      subtitle: `Enter a new display title for "${album.title}".`,
+      inputLabel: 'New Collection Title',
+      defaultValue: album.title,
+      placeholder: 'Enter title (e.g. Wedding Reception)...',
+      hint: 'This title will appear across your gallery, navbar quick-switch, and album cards.',
+      isPassword: false,
+      confirmText: 'Save Title'
+    });
+
     if (!newTitle || newTitle.trim() === '' || newTitle.trim() === album.title) return;
 
     album.title = newTitle.trim();
@@ -1795,12 +2007,23 @@
     showToast('Folder Renamed', `Album is now "${album.title}".`, '✏️', 3000);
   }
 
-  function promptDeleteFolder(albumId) {
+  async function promptDeleteFolder(albumId) {
     if (!checkAdminAccess()) return;
     const album = state.albums[albumId];
     if (!album) return;
 
-    if (!confirm(`Are you sure you want to delete the folder "${album.title}"?`)) return;
+    const confirmed = await showCreativeConfirm({
+      icon: '🗑️',
+      iconClass: 'danger-icon-wrap',
+      title: 'Delete Event Folder?',
+      subtitle: `Are you sure you want to permanently delete the collection "${album.title}"?`,
+      warningText: `This will remove "${album.title}" and its configuration from your gallery and GitHub sync.`,
+      confirmText: 'Yes, Delete Folder',
+      cancelText: 'Keep Folder',
+      isDanger: true
+    });
+
+    if (!confirmed) return;
 
     delete state.albums[albumId];
     saveCustomAlbums();
