@@ -1327,7 +1327,7 @@
       openAdminSuite();
     } else {
       if (el.adminAuthError) {
-        el.adminAuthError.textContent = 'Incorrect admin security key or token. Try default master key.';
+        el.adminAuthError.textContent = 'Incorrect security passcode or token. Access denied.';
         el.adminAuthError.style.display = 'block';
       }
     }
@@ -1495,8 +1495,9 @@
     showToast('Folder Deleted', `Removed "${album.title}".`, '🗑️', 3000);
   }
 
-  // Expose admin actions globally for table buttons
+  // Expose admin actions globally for table buttons and header action
   window.galleryAdmin = {
+    openAdmin: openAdminAuthModal,
     password: promptSetFolderPassword,
     rename: promptRenameFolder,
     delete: promptDeleteFolder,
