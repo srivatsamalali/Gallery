@@ -137,7 +137,7 @@ def scan_albums():
         album_id = slugify(entry)
 
         if not files:
-            desc = "Portraits & romantic golden hour moments." if "wedding" in entry.lower() else "Upcoming photo collection. Original photos being prepared for upload."
+            desc = "Portraits & romantic golden hour moments. Created by Srivatsa." if "wedding" in entry.lower() else "Upcoming photo collection preserved in uncompressed original quality. Created by Srivatsa."
             album_meta = {
                 'id': album_id,
                 'title': entry,
@@ -151,8 +151,9 @@ def scan_albums():
                 'totalSizeFormatted': '0 MB',
                 'coverThumb': '',
                 'coverOriginal': '',
-                'camera': 'Nikon Z6 III',
                 'status': 'upcoming',
+                'isPasswordProtected': False,
+                'passwordHash': '',
                 'photos': []
             }
             albums.append(album_meta)
@@ -185,7 +186,7 @@ def scan_albums():
             'id': album_id,
             'title': entry,
             'folder': entry,
-            'description': f'Preserved in 100% original uncompressed quality ({cover_photo["camera"] if cover_photo else "DSLR"}).',
+            'description': 'Preserved in 100% original uncompressed quality. Created by Srivatsa.',
             'date': cover_photo['date'] if cover_photo else '2026',
             'photoCount': len(photos),
             'portraitsCount': sum(1 for p in photos if p['isPortrait']),
@@ -194,8 +195,9 @@ def scan_albums():
             'totalSizeFormatted': total_formatted,
             'coverThumb': cover_photo['thumbUrl'] if cover_photo else '',
             'coverOriginal': cover_photo['originalUrl'] if cover_photo else '',
-            'camera': cover_photo['camera'] if cover_photo else 'Nikon Z6 III',
             'status': 'active',
+            'isPasswordProtected': False,
+            'passwordHash': '',
             'photos': photos
         }
         albums.append(album_meta)

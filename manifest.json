@@ -1,7 +1,7 @@
 {
   "name": "Baby Showers Photo Gallery",
   "short_name": "Baby Showers",
-  "description": "Nikon Z6 III Original High Fidelity Photo Gallery (24.4 MP)",
+  "description": "Original High Fidelity Photo Gallery & Event Archives",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -4,7 +4,7 @@ const ALBUMS_DATA = {
     "id": "baby-showers",
     "title": "Baby Showers",
     "folder": "Baby Showers",
-    "description": "Preserved in 100% original uncompressed quality (Nikon Z6 III).",
+    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "2026:11:06 10:35:29",
     "photoCount": 277,
     "portraitsCount": 42,
@@ -13,8 +13,9 @@ const ALBUMS_DATA = {
     "totalSizeFormatted": "4.61 GB",
     "coverThumb": "thumbnails/DSC_0306.JPG",
     "coverOriginal": "Baby Showers/DSC_0306.JPG",
-    "camera": "Nikon Z6 III",
     "status": "active",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": [
       {
         "filename": "DSC_0306.JPG",
@@ -5285,7 +5286,7 @@ const ALBUMS_DATA = {
     "id": "pre-wedding-shoot",
     "title": "Pre Wedding Shoot",
     "folder": "Pre Wedding Shoot",
-    "description": "Portraits & romantic golden hour moments.",
+    "description": "Portraits & romantic golden hour moments. Created by Srivatsa.",
     "date": "Upcoming 2026",
     "photoCount": 0,
     "portraitsCount": 0,
@@ -5294,15 +5295,16 @@ const ALBUMS_DATA = {
     "totalSizeFormatted": "0 MB",
     "coverThumb": "",
     "coverOriginal": "",
-    "camera": "Nikon Z6 III",
     "status": "upcoming",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": []
   },
   "wedding-celebrations": {
     "id": "wedding-celebrations",
     "title": "Wedding Celebrations",
     "folder": "Wedding Celebrations",
-    "description": "Portraits & romantic golden hour moments.",
+    "description": "Portraits & romantic golden hour moments. Created by Srivatsa.",
     "date": "Upcoming 2026",
     "photoCount": 0,
     "portraitsCount": 0,
@@ -5311,8 +5313,9 @@ const ALBUMS_DATA = {
     "totalSizeFormatted": "0 MB",
     "coverThumb": "",
     "coverOriginal": "",
-    "camera": "Nikon Z6 III",
     "status": "upcoming",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": []
   }
 };
