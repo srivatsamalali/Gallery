@@ -5296,8 +5296,8 @@ const ALBUMS_DATA = {
     "coverThumb": "",
     "coverOriginal": "",
     "status": "upcoming",
-    "isPasswordProtected": false,
-    "passwordHash": "",
+    "isPasswordProtected": true,
+    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
     "photos": []
   },
   "wedding-celebrations": {
