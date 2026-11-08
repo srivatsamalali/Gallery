@@ -810,23 +810,27 @@ body::before {
   opacity: 0;
 }
 
-/* Card Badges (Size & Resolution) */
+/* Card Badges (Size & Resolution) - subtle on desktop hover, hidden on mobile */
 .card-badges {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 10px;
+  left: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   z-index: 3;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
-@media (max-width: 640px) {
+.photo-card:hover .card-badges {
+  opacity: 1;
+}
+
+@media (max-width: 768px), (hover: none) {
   .card-badges {
-    top: 6px;
-    left: 6px;
-    gap: 4px;
+    display: none !important;
   }
 }
 
@@ -844,17 +848,6 @@ body::before {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-@media (max-width: 640px) {
-  .badge-tag {
-    padding: 2.5px 7px;
-    font-size: 0.65rem;
-    letter-spacing: 0;
-  }
-  .badge-res {
-    display: none; /* Hide 24 MP badge on mobile cards to keep subjects unobstructed */
-  }
-}
-
 .badge-size {
   background: rgba(18, 16, 15, 0.72);
   color: #ffffff;
@@ -867,56 +860,34 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Mobile Quick Favorite Button on Cards */
-.card-mobile-fav {
+/* Subtle Favorite Indicator Badge (only visible if photo is favorited) */
+.card-fav-badge {
   display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.6));
+  transition: transform var(--transition-fast);
 }
 
-@media (hover: none), (max-width: 768px) {
-  .card-mobile-fav {
-    display: flex;
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(18, 16, 15, 0.58);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-    align-items: center;
-    justify-content: center;
-    z-index: 4;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-    transition: transform var(--transition-fast), background var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-  }
+.card-fav-badge.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .card-mobile-fav svg {
-    width: 16px;
-    height: 16px;
-  }
+.card-fav-badge svg {
+  width: 18px;
+  height: 18px;
+  fill: #e53e3e;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+}
 
-  .card-mobile-fav:active {
-    transform: scale(0.85);
-  }
-
-  .card-mobile-fav.active {
-    background: #e53e3e;
-    border-color: #e53e3e;
-  }
-
-  .card-mobile-fav.active svg {
-    fill: #ffffff;
-    stroke: #ffffff;
-  }
-
-  .selection-mode .card-mobile-fav {
-    display: none !important;
-  }
+.selection-mode .card-fav-badge {
+  display: none !important;
 }
 
 /* Card Overlay Controls */
@@ -938,6 +909,33 @@ body::before {
 
 .photo-card:hover .card-overlay {
   opacity: 1;
+}
+
+@media (max-width: 768px), (hover: none) {
+  /* Complete cleanup of mobile thumbnails: pure photo view */
+  .card-overlay {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .photo-card:hover .card-overlay {
+    display: none !important;
+  }
+
+  .photo-card:hover {
+    transform: none !important;
+    box-shadow: var(--shadow-sm) !important;
+    border-color: var(--border-light) !important;
+  }
+
+  .photo-card:hover .photo-img {
+    transform: none !important;
+  }
+
+  .photo-card:active {
+    transform: scale(0.98);
+  }
 }
 
 .overlay-top {
@@ -1038,6 +1036,17 @@ body::before {
 
 .selection-mode .select-checkbox-wrap {
   display: block;
+}
+
+@media (max-width: 640px) {
+  .select-checkbox-wrap {
+    top: 8px;
+    right: 8px;
+  }
+  .select-checkbox {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 .select-checkbox {
