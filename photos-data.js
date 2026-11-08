@@ -5288,17 +5288,37 @@ const ALBUMS_DATA = {
     "folder": "Pre Wedding Shoot",
     "description": "Portraits & romantic golden hour moments. Created by Srivatsa.",
     "date": "Upcoming 2026",
-    "photoCount": 0,
+    "photoCount": 1,
     "portraitsCount": 0,
     "landscapesCount": 0,
     "totalSizeBytes": 0,
     "totalSizeFormatted": "0 MB",
-    "coverThumb": "",
+    "coverThumb": "blob:https://srivatsamalali.github.io/12df92b5-217a-4d7c-8855-3634d0343ccb",
     "coverOriginal": "",
-    "status": "upcoming",
+    "status": "active",
     "isPasswordProtected": true,
     "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
-    "photos": []
+    "photos": [
+      {
+        "filename": "847A3165_Original.jpeg",
+        "title": "847A3165_Original",
+        "folder": "Pre Wedding Shoot",
+        "originalUrl": "blob:https://srivatsamalali.github.io/12df92b5-217a-4d7c-8855-3634d0343ccb",
+        "thumbUrl": "blob:https://srivatsamalali.github.io/12df92b5-217a-4d7c-8855-3634d0343ccb",
+        "sizeBytes": 3966937,
+        "sizeFormatted": "3.8 MB",
+        "width": 6048,
+        "height": 4032,
+        "displayWidth": 6048,
+        "displayHeight": 4032,
+        "orientation": 1,
+        "isPortrait": false,
+        "aspectRatio": 1.5,
+        "date": "11/8/2026",
+        "camera": "Original DSLR",
+        "id": 1
+      }
+    ]
   }
 };
 
