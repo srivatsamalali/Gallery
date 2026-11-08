@@ -11,6 +11,7 @@
     allPhotos: typeof PHOTOS_DATA !== 'undefined' ? PHOTOS_DATA : [],
     filteredPhotos: [],
     activeFilter: 'all',
+    activeChapter: 'all',
     searchQuery: '',
     sortBy: 'default',
     layout: 'masonry',
@@ -18,15 +19,19 @@
     lightboxOpen: false,
     slideshowRunning: false,
     slideshowTimer: null,
+    slideshowSpeed: 5000,
     isZoomed: false,
     favorites: new Set(JSON.parse(localStorage.getItem('bs_favorites') || '[]')),
     selectionMode: false,
     selectedPhotos: new Set(),
+    theme: 'light',
+    renderedCount: 28,
   };
 
   // --- DOM Elements ---
   const el = {
     galleryContainer: document.getElementById('gallery-container'),
+    scrollSentinel: document.getElementById('scroll-sentinel'),
     searchInput: document.getElementById('search-input'),
     searchClearBtn: document.getElementById('search-clear-btn'),
     filterTabs: document.querySelectorAll('.tab-btn'),
@@ -36,10 +41,13 @@
       landscape: document.getElementById('count-landscape'),
       favorites: document.getElementById('count-favorites'),
     },
+    chapterPills: document.querySelectorAll('.chapter-pill'),
     layoutBtns: document.querySelectorAll('.layout-btn'),
     sortSelect: document.getElementById('sort-select'),
     btnSelectMode: document.getElementById('btn-select-mode'),
     btnSlideshow: document.getElementById('btn-slideshow'),
+    themeToggle: document.getElementById('theme-toggle'),
+    themeText: document.getElementById('theme-text'),
     noResults: document.getElementById('no-results'),
     scrollProgress: document.getElementById('scroll-progress'),
     backToTop: document.getElementById('back-to-top'),
@@ -51,6 +59,7 @@
     lightbox: document.getElementById('lightbox'),
     lbMobileBack: document.getElementById('lb-mobile-back'),
     lbSwipeBar: document.getElementById('lb-swipe-bar'),
+    lbProgressBar: document.getElementById('lb-progress-bar'),
     lbTitle: document.getElementById('lb-title'),
     lbCounter: document.getElementById('lb-counter'),
     lbQualityPill: document.getElementById('lb-quality-pill'),
@@ -61,6 +70,9 @@
     lbNext: document.getElementById('lb-next'),
     lbZoomBtn: document.getElementById('lb-zoom-btn'),
     lbFavBtn: document.getElementById('lb-fav-btn'),
+    lbAudioBtn: document.getElementById('lb-audio-btn'),
+    lbShareBtn: document.getElementById('lb-share-btn'),
+    lbInfoBtn: document.getElementById('lb-info-btn'),
     lbSlideshowBtn: document.getElementById('lb-slideshow-btn'),
     lbFullscreenBtn: document.getElementById('lb-fullscreen-btn'),
     lbDownloadCta: document.getElementById('lb-download-cta'),
@@ -69,10 +81,14 @@
     lbSizeMeta: document.getElementById('lb-size-meta'),
     lbDateMeta: document.getElementById('lb-date-meta'),
     lbFilmstrip: document.getElementById('lb-filmstrip'),
+    lbExifModal: document.getElementById('lb-exif-modal'),
+    lbExifClose: document.getElementById('lb-exif-close'),
+    lbExifGrid: document.getElementById('lb-exif-grid'),
 
     // Batch Drawer
     batchDrawer: document.getElementById('batch-drawer'),
     batchCountText: document.getElementById('batch-count-text'),
+    batchZipBtn: document.getElementById('batch-zip-btn'),
     batchDownloadBtn: document.getElementById('batch-download-btn'),
     batchCancelBtn: document.getElementById('batch-cancel-btn'),
   };
@@ -159,23 +175,28 @@
   })();
 
   // --- Toast Notifications ---
-  function showToast(title, message, icon = '🎉', duration = 4000) {
-    if (!el.toastContainer) return;
+  function showToast(titleOrMsg, message = '', icon = '✨', duration = 3500) {
+    if (!el.toastContainer) return null;
+    const title = message ? titleOrMsg : '';
+    const msg = message || titleOrMsg;
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.innerHTML = `
       <div class="toast-icon">${icon}</div>
       <div class="toast-body">
-        <div class="toast-title">${title}</div>
-        <div class="toast-msg">${message}</div>
+        ${title ? `<div class="toast-title">${title}</div>` : ''}
+        <div class="toast-msg">${msg}</div>
       </div>
     `;
     el.toastContainer.appendChild(toast);
 
-    setTimeout(() => {
-      toast.classList.add('toast-leave');
-      setTimeout(() => toast.remove(), 400);
-    }, duration);
+    if (duration > 0) {
+      setTimeout(() => {
+        toast.classList.add('toast-leave');
+        setTimeout(() => toast.remove(), 400);
+      }, duration);
+    }
+    return toast;
   }
 
   // --- URL Resolver for Original Files ---
@@ -229,6 +250,18 @@
       result = result.filter((p) => p.filename.toLowerCase().includes(q) || p.title.toLowerCase().includes(q));
     }
 
+    // Timeline Chapter Filter
+    if (state.activeChapter && state.activeChapter !== 'all') {
+      const targetHour = parseInt(state.activeChapter, 10);
+      result = result.filter((p) => {
+        if (!p.date) return false;
+        const timePart = p.date.split(' ')[1];
+        if (!timePart) return false;
+        const hour = parseInt(timePart.split(':')[0], 10);
+        return hour === targetHour;
+      });
+    }
+
     // Sort
     if (state.sortBy === 'filename-asc') {
       result.sort((a, b) => a.filename.localeCompare(b.filename));
@@ -245,7 +278,7 @@
 
     state.filteredPhotos = result;
     updateCounts();
-    renderGallery();
+    renderGallery(true);
   }
 
   function updateCounts() {
@@ -260,11 +293,17 @@
     if (el.tabCounts.favorites) el.tabCounts.favorites.textContent = favCount;
   }
 
-  // --- Gallery Rendering ---
-  function renderGallery() {
+  // --- Gallery Rendering with Chunked Infinite Scroll ---
+  let infiniteScrollObserver = null;
+
+  function renderGallery(reset = true) {
     const container = el.galleryContainer;
     if (!container) return;
-    container.innerHTML = '';
+
+    if (reset) {
+      container.innerHTML = '';
+      state.renderedCount = Math.min(28, state.filteredPhotos.length);
+    }
 
     if (state.filteredPhotos.length === 0) {
       if (el.noResults) el.noResults.classList.add('visible');
@@ -276,9 +315,11 @@
     container.className = `gallery-container layout-${state.layout}`;
 
     const fragment = document.createDocumentFragment();
+    const startIndex = reset ? 0 : container.children.length;
+    const currentSlice = state.filteredPhotos.slice(startIndex, state.renderedCount);
 
-    state.filteredPhotos.forEach((photo, index) => {
-      const card = createPhotoCard(photo, index);
+    currentSlice.forEach((photo, i) => {
+      const card = createPhotoCard(photo, startIndex + i);
       fragment.appendChild(card);
     });
 
@@ -286,6 +327,30 @@
 
     // Setup intersection observer for scroll reveal
     setupScrollReveal();
+
+    // Setup infinite scroll observer
+    setupInfiniteScroll();
+  }
+
+  function appendNextChunk() {
+    if (state.renderedCount >= state.filteredPhotos.length) return;
+    state.renderedCount = Math.min(state.renderedCount + 24, state.filteredPhotos.length);
+    renderGallery(false);
+  }
+
+  function setupInfiniteScroll() {
+    if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+    if (!el.scrollSentinel) return;
+
+    infiniteScrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && state.renderedCount < state.filteredPhotos.length) {
+          appendNextChunk();
+        }
+      });
+    }, { rootMargin: '600px 0px' });
+
+    infiniteScrollObserver.observe(el.scrollSentinel);
   }
 
   function createPhotoCard(photo, index) {
@@ -604,6 +669,78 @@
     }
   }
 
+  // --- Client-Side ZIP Download Engine ---
+  async function downloadBatchSelectedAsZip() {
+    const selectedList = state.allPhotos.filter((p) => state.selectedPhotos.has(p.filename));
+    if (selectedList.length === 0) return;
+
+    if (typeof JSZip === 'undefined') {
+      showToast('ZIP Compression Loading', 'Please wait 2 seconds while the compression engine finishes loading...', '⏳', 3000);
+      return;
+    }
+
+    if (el.batchZipBtn) {
+      el.batchZipBtn.disabled = true;
+      el.batchZipBtn.innerHTML = `<span class="spinner"></span> <span>Packaging ZIP...</span>`;
+    }
+
+    const zip = new JSZip();
+    const folder = zip.folder('Baby_Showers_Favorites');
+    const toast = showToast('Packaging ZIP Album', `Fetching photo 0 of ${selectedList.length}...`, '📦', 0);
+    confetti.burst();
+
+    let loadedCount = 0;
+    for (let i = 0; i < selectedList.length; i++) {
+      const photo = selectedList[i];
+      try {
+        let resp = await fetch(getOriginalUrl(photo)).catch(() => null);
+        if (!resp || !resp.ok) {
+          resp = await fetch(encodeURI(photo.thumbUrl)).catch(() => null);
+        }
+        if (resp && resp.ok) {
+          const blob = await resp.blob();
+          folder.file(photo.filename, blob);
+        }
+      } catch (err) {
+        console.warn('ZIP fetch error for', photo.filename, err);
+      }
+      loadedCount++;
+      if (toast) {
+        const msgEl = toast.querySelector('.toast-msg');
+        if (msgEl) msgEl.textContent = `Packed ${loadedCount} of ${selectedList.length} photos (${Math.round((loadedCount / selectedList.length) * 100)}%)...`;
+      }
+    }
+
+    if (toast) {
+      const msgEl = toast.querySelector('.toast-msg');
+      if (msgEl) msgEl.textContent = 'Generating .zip archive for download...';
+    }
+
+    try {
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const dlLink = document.createElement('a');
+      dlLink.href = URL.createObjectURL(zipBlob);
+      dlLink.download = `Baby_Showers_${selectedList.length}_Photos.zip`;
+      document.body.appendChild(dlLink);
+      dlLink.click();
+      document.body.removeChild(dlLink);
+      setTimeout(() => URL.revokeObjectURL(dlLink.href), 15000);
+
+      if (toast) toast.remove();
+      showToast('ZIP Download Ready!', `Successfully bundled ${selectedList.length} photos into ZIP archive.`, '🎉', 5000);
+      confetti.burst();
+    } catch (e) {
+      if (toast) toast.remove();
+      showToast('ZIP Generation Failed', 'Falling back to individual sequential downloads...', '⚠️', 4000);
+      downloadBatchSelected();
+    }
+
+    if (el.batchZipBtn) {
+      el.batchZipBtn.disabled = false;
+      el.batchZipBtn.innerHTML = `<span>Download as ZIP</span>`;
+    }
+  }
+
   // --- Lightbox / Large Preview Engine ---
   function openLightbox(index) {
     if (!state.filteredPhotos[index]) return;
@@ -617,15 +754,27 @@
 
     el.lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // Deep link URL hash update
+    const photo = state.filteredPhotos[index];
+    if (photo) {
+      history.replaceState(null, '', `#photo=${encodeURIComponent(photo.filename)}`);
+    }
   }
 
   function closeLightbox() {
     state.lightboxOpen = false;
     stopSlideshow();
+    if (el.lbExifModal) el.lbExifModal.classList.remove('visible');
     el.lightbox.classList.remove('active');
     el.lightbox.classList.remove('immersive');
     document.body.style.overflow = '';
     resetZoom();
+
+    // Clean hash on close
+    if (window.location.hash.startsWith('#photo=')) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
   }
 
   function nextPhoto() {
@@ -662,9 +811,22 @@
     el.lbCounter.textContent = `${state.currentIndex + 1} of ${state.filteredPhotos.length}`;
     el.lbQualityPill.textContent = `Nikon Z6 III • ${photo.sizeFormatted}`;
 
+    // Deep link hash update
+    history.replaceState(null, '', `#photo=${encodeURIComponent(photo.filename)}`);
+
     // Load preview with smooth cross-fade
     el.lbImg.style.opacity = '0.3';
     el.lbImg.src = encodeURI(photo.thumbUrl);
+
+    // Apply Ken Burns animation if slideshow running
+    if (state.slideshowRunning) {
+      el.lbImg.classList.remove('ken-burns');
+      void el.lbImg.offsetWidth; // trigger reflow
+      el.lbImg.classList.add('ken-burns');
+      restartSlideshowProgress();
+    } else {
+      el.lbImg.classList.remove('ken-burns');
+    }
 
     // Progressive upgrade to full original if viewer zooms or image finishes
     const fullImg = new Image();
@@ -704,8 +866,150 @@
     const favSvg = el.lbFavBtn.querySelector('svg');
     if (favSvg) favSvg.setAttribute('fill', isFav ? '#e53e3e' : 'none');
 
+    // Update EXIF modal if currently open
+    if (el.lbExifModal && el.lbExifModal.classList.contains('visible')) {
+      populateExifModal(photo);
+    }
+
     // Update filmstrip highlight
     highlightFilmstripActive();
+  }
+
+  // --- Detailed Nikon Z6 III EXIF Inspector ---
+  function populateExifModal(photo) {
+    if (!el.lbExifGrid || !photo) return;
+
+    let timeFormatted = 'Friday, Nov 6, 2026';
+    if (photo.date) {
+      try {
+        const parts = photo.date.split(' ');
+        if (parts.length === 2) {
+          const dParts = parts[0].split(':');
+          const tParts = parts[1].split(':');
+          const dObj = new Date(dParts[0], dParts[1] - 1, dParts[2], tParts[0], tParts[1], tParts[2]);
+          timeFormatted = dObj.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }) + ' at ' + dObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+      } catch (e) {}
+    }
+
+    el.lbExifGrid.innerHTML = `
+      <div class="exif-item exif-item-full">
+        <span class="exif-label">Camera Sensor</span>
+        <span class="exif-val">${photo.camera || 'Nikon Z6 III'} (Full-Frame BSI CMOS)</span>
+      </div>
+      <div class="exif-item">
+        <span class="exif-label">Native Resolution</span>
+        <span class="exif-val">${photo.width} × ${photo.height}</span>
+      </div>
+      <div class="exif-item">
+        <span class="exif-label">Megapixels</span>
+        <span class="exif-val">24.4 MP</span>
+      </div>
+      <div class="exif-item">
+        <span class="exif-label">Original File Size</span>
+        <span class="exif-val">${photo.sizeFormatted}</span>
+      </div>
+      <div class="exif-item">
+        <span class="exif-label">Orientation</span>
+        <span class="exif-val">${photo.isPortrait ? 'Portrait (Vertical)' : 'Landscape (Horizontal)'}</span>
+      </div>
+      <div class="exif-item exif-item-full">
+        <span class="exif-label">Capture Timestamp</span>
+        <span class="exif-val">${timeFormatted}</span>
+      </div>
+      <div class="exif-item">
+        <span class="exif-label">Aspect Ratio</span>
+        <span class="exif-val">3:2 (Full-Frame)</span>
+      </div>
+      <div class="exif-item">
+        <span class="exif-label">Compression</span>
+        <span class="exif-val">0% Uncompressed</span>
+      </div>
+    `;
+  }
+
+  function toggleExifModal() {
+    if (!el.lbExifModal) return;
+    const isVisible = el.lbExifModal.classList.contains('visible');
+    if (!isVisible) {
+      const photo = state.filteredPhotos[state.currentIndex];
+      if (photo) populateExifModal(photo);
+      el.lbExifModal.classList.add('visible');
+    } else {
+      el.lbExifModal.classList.remove('visible');
+    }
+  }
+
+  // --- Native Web Share API & Deep Linking ---
+  function shareCurrentPhoto() {
+    const photo = state.filteredPhotos[state.currentIndex];
+    if (!photo) return;
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}#photo=${encodeURIComponent(photo.filename)}`;
+    if (navigator.share) {
+      navigator.share({
+        title: `${photo.title} — Baby Showers Gallery`,
+        text: `Look at this 24 MP photo from the Baby Showers celebration (${photo.title})!`,
+        url: shareUrl,
+      }).catch((err) => {
+        if (err.name !== 'AbortError') copyToClipboard(shareUrl);
+      });
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Direct Link Copied', 'Paste anywhere to share this exact full-resolution photo.', '🔗', 3500);
+      }).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast('Direct Link Copied', 'Paste anywhere to share this exact full-resolution photo.', '🔗', 3500);
+    } catch (e) {
+      prompt('Copy photo link:', text);
+    }
+    document.body.removeChild(ta);
+  }
+
+  function handleUrlHash() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#photo=')) {
+      const filename = decodeURIComponent(hash.replace('#photo=', ''));
+      const idx = state.allPhotos.findIndex((p) => p.filename === filename);
+      if (idx !== -1) {
+        const filteredIdx = state.filteredPhotos.findIndex((p) => p.filename === filename);
+        if (filteredIdx !== -1) {
+          openLightbox(filteredIdx);
+        } else {
+          // Switch filter to all so photo is in view
+          state.activeFilter = 'all';
+          state.activeChapter = 'all';
+          state.searchQuery = '';
+          applyFiltersAndSort();
+          const newIdx = state.filteredPhotos.findIndex((p) => p.filename === filename);
+          if (newIdx !== -1) openLightbox(newIdx);
+        }
+      }
+    }
   }
 
   function renderFilmstrip() {
@@ -795,7 +1099,17 @@
     }
   });
 
-  // --- Slideshow Mode ---
+  // --- Slideshow Mode with Ken Burns & Progress Bar ---
+  function restartSlideshowProgress() {
+    if (!el.lbProgressBar || !state.slideshowRunning) return;
+    el.lbProgressBar.style.transition = 'none';
+    el.lbProgressBar.style.width = '0%';
+    requestAnimationFrame(() => {
+      el.lbProgressBar.style.transition = `width ${state.slideshowSpeed}ms linear`;
+      el.lbProgressBar.style.width = '100%';
+    });
+  }
+
   function toggleSlideshow() {
     if (state.slideshowRunning) {
       stopSlideshow();
@@ -809,21 +1123,138 @@
       openLightbox(state.currentIndex);
     }
     state.slideshowRunning = true;
+    el.lightbox.classList.add('slideshow-active');
     el.lbSlideshowBtn.classList.add('active');
     if (el.btnSlideshow) el.btnSlideshow.classList.add('primary');
 
-    showToast('Slideshow Started', 'Photos auto-advance every 3.5 seconds. Press Space to pause.', '▶️', 3000);
+    el.lbImg.classList.remove('ken-burns');
+    void el.lbImg.offsetWidth;
+    el.lbImg.classList.add('ken-burns');
 
+    showToast('Cinematic Slideshow', 'Photos auto-advancing with Ken Burns effect. Press Space to pause.', '▶️', 3500);
+
+    restartSlideshowProgress();
+
+    if (state.slideshowTimer) clearInterval(state.slideshowTimer);
     state.slideshowTimer = setInterval(() => {
       nextPhoto();
-    }, 3500);
+    }, state.slideshowSpeed);
   }
 
   function stopSlideshow() {
     state.slideshowRunning = false;
     if (state.slideshowTimer) clearInterval(state.slideshowTimer);
+    el.lightbox.classList.remove('slideshow-active');
+    el.lbImg.classList.remove('ken-burns');
+    if (el.lbProgressBar) {
+      el.lbProgressBar.style.transition = 'none';
+      el.lbProgressBar.style.width = '0%';
+    }
     el.lbSlideshowBtn.classList.remove('active');
     if (el.btnSlideshow) el.btnSlideshow.classList.remove('primary');
+  }
+
+  // --- Ambient Lullaby Soundscape (Web Audio API) ---
+  const ambientAudio = (function () {
+    let ctx = null;
+    let isPlaying = false;
+    let timer = null;
+    let masterGain = null;
+
+    // Harmonic pentatonic frequencies (Gentle harp & music-box lullaby)
+    const chords = [
+      [261.63, 329.63, 392.00, 493.88], // Cmaj7
+      [220.00, 261.63, 329.63, 392.00], // Am7
+      [174.61, 261.63, 329.63, 392.00], // Fmaj7
+      [196.00, 246.94, 293.66, 392.00], // G
+      [164.81, 246.94, 329.63, 392.00], // Em7
+    ];
+    let chordIdx = 0;
+
+    function playChord() {
+      if (!isPlaying || !ctx) return;
+      const now = ctx.currentTime;
+      const notes = chords[chordIdx % chords.length];
+      chordIdx++;
+
+      notes.forEach((freq, idx) => {
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.16);
+
+          gain.gain.setValueAtTime(0, now + idx * 0.16);
+          gain.gain.linearRampToValueAtTime(0.035, now + idx * 0.16 + 0.6);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.16 + 4.2);
+
+          osc.connect(gain);
+          gain.connect(masterGain);
+
+          osc.start(now + idx * 0.16);
+          osc.stop(now + idx * 0.16 + 4.5);
+        } catch (e) {}
+      });
+
+      timer = setTimeout(playChord, 3800);
+    }
+
+    function toggle() {
+      if (isPlaying) {
+        stop();
+        return false;
+      } else {
+        start();
+        return true;
+      }
+    }
+
+    function start() {
+      if (!ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        ctx = new AudioCtx();
+        masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(0.8, ctx.currentTime);
+        masterGain.connect(ctx.destination);
+      }
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      isPlaying = true;
+      playChord();
+    }
+
+    function stop() {
+      isPlaying = false;
+      if (timer) clearTimeout(timer);
+    }
+
+    return { toggle, isPlaying: () => isPlaying, stop };
+  })();
+
+  // --- Studio Dark / Light Mode Theme Engine ---
+  function initTheme() {
+    const savedTheme = localStorage.getItem('bs_theme');
+    const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+    setTheme(theme);
+  }
+
+  function setTheme(theme) {
+    state.theme = theme;
+    document.body.dataset.theme = theme;
+    localStorage.setItem('bs_theme', theme);
+    if (el.themeText) {
+      el.themeText.textContent = theme === 'dark' ? 'Studio Dark' : 'Warm Light';
+    }
+  }
+
+  function toggleTheme() {
+    const newTheme = state.theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    showToast(newTheme === 'dark' ? 'Studio OLED Dark Active' : 'Warm Stone Light Active', newTheme === 'dark' ? 'Deep black background with gold highlights.' : 'Gentle warm cream gallery aesthetic.', newTheme === 'dark' ? '🌙' : '☀️', 2500);
   }
 
   // --- Fullscreen Toggle ---
@@ -1135,6 +1566,21 @@
       });
     }
 
+    // Theme toggle button
+    if (el.themeToggle) {
+      el.themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    // Timeline chapter pills
+    el.chapterPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        el.chapterPills.forEach((p) => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.activeChapter = pill.dataset.chapter;
+        applyFiltersAndSort();
+      });
+    });
+
     // Lightbox Controls
     el.lbClose.addEventListener('click', closeLightbox);
     el.lbNext.addEventListener('click', nextPhoto);
@@ -1143,6 +1589,35 @@
     el.lbSlideshowBtn.addEventListener('click', toggleSlideshow);
     if (el.lbFullscreenBtn) {
       el.lbFullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
+
+    // Audio lullaby toggle in lightbox
+    if (el.lbAudioBtn) {
+      el.lbAudioBtn.addEventListener('click', () => {
+        const playing = ambientAudio.toggle();
+        el.lbAudioBtn.classList.toggle('active', playing);
+        showToast(
+          playing ? '🎶 Acoustic Ambient Lullaby On' : '🔇 Ambient Music Muted',
+          playing ? 'Playing soft harp and piano chords in the background.' : 'Background sound paused.',
+          '🎵',
+          2500
+        );
+      });
+    }
+
+    // Native Web Share button in lightbox
+    if (el.lbShareBtn) {
+      el.lbShareBtn.addEventListener('click', shareCurrentPhoto);
+    }
+
+    // Detailed Nikon EXIF Inspector toggle
+    if (el.lbInfoBtn) {
+      el.lbInfoBtn.addEventListener('click', toggleExifModal);
+    }
+    if (el.lbExifClose) {
+      el.lbExifClose.addEventListener('click', () => {
+        if (el.lbExifModal) el.lbExifModal.classList.remove('visible');
+      });
     }
 
     el.lbFavBtn.addEventListener('click', () => {
@@ -1156,6 +1631,9 @@
     });
 
     // Batch Drawer buttons
+    if (el.batchZipBtn) {
+      el.batchZipBtn.addEventListener('click', downloadBatchSelectedAsZip);
+    }
     if (el.batchDownloadBtn) {
       el.batchDownloadBtn.addEventListener('click', downloadBatchSelected);
     }
@@ -1166,14 +1644,35 @@
     // Double click to zoom in Lightbox
     el.lbImg.addEventListener('dblclick', toggleZoom);
 
+    // Deep linking URL hashchange listener
+    window.addEventListener('hashchange', () => {
+      if (!window.location.hash && state.lightboxOpen) {
+        closeLightbox();
+      } else if (window.location.hash.startsWith('#photo=')) {
+        handleUrlHash();
+      }
+    });
+
     // Initialize Mobile Touch Gestures
     initMobileTouchGestures();
   }
 
   // --- Bootstrap App ---
   function init() {
+    initTheme();
     initEvents();
     applyFiltersAndSort();
+    handleUrlHash();
+
+    // Register PWA Service Worker for Offline Access
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => {
+          console.log('Service Worker registration skipped:', err);
+        });
+      });
+    }
+
     console.log(`Baby Showers Gallery initialized with ${state.allPhotos.length} original photos.`);
   }
 

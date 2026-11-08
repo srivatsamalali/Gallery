@@ -11,8 +11,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="format-detection" content="telephone=no">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍼</text></svg>">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
 </head>
 <body>
 
@@ -25,6 +28,15 @@
   <!-- Hero Header Section -->
   <header class="hero">
     <div class="container">
+      <!-- Top Action Strip: Theme Toggle -->
+      <div class="hero-top-strip">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark/light theme" title="Toggle Studio Dark / Light Mode">
+          <span class="theme-icon sun-icon">☀️</span>
+          <span class="theme-icon moon-icon">🌙</span>
+          <span class="theme-text" id="theme-text">Dark Mode</span>
+        </button>
+      </div>
+
       <div class="hero-badge-wrap">
         <div class="hero-badge">
           <span>🍼</span> Welcoming Our Little Blessing
@@ -152,12 +164,48 @@
     </div>
   </div>
 
+  <!-- Chronological Event Timeline Chapters -->
+  <section class="chapters-wrapper" id="chapters-wrapper">
+    <div class="container">
+      <div class="chapters-bar" id="chapters-bar">
+        <span class="chapters-label">📅 Event Timeline:</span>
+        <button class="chapter-pill active" data-chapter="all">
+          <span>All Day</span>
+          <span class="chapter-count">277</span>
+        </button>
+        <button class="chapter-pill" data-chapter="10">
+          <span>🌅 Arrivals & Setup</span>
+          <span class="chapter-time">10:30 AM</span>
+        </button>
+        <button class="chapter-pill" data-chapter="11">
+          <span>🌸 Welcoming Rituals</span>
+          <span class="chapter-time">11:00 AM</span>
+        </button>
+        <button class="chapter-pill" data-chapter="12">
+          <span>🪔 Traditions & Blessings</span>
+          <span class="chapter-time">12:00 PM</span>
+        </button>
+        <button class="chapter-pill" data-chapter="13">
+          <span>👨‍👩‍👧 Family Portraits</span>
+          <span class="chapter-time">1:00 PM</span>
+        </button>
+        <button class="chapter-pill" data-chapter="14">
+          <span>🎉 Feast & Candids</span>
+          <span class="chapter-time">2:00 PM</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Gallery Grid Section -->
   <main class="gallery-section">
     <div class="container">
       <div id="gallery-container" class="gallery-container layout-masonry">
         <!-- Dynamically rendered photo cards -->
       </div>
+
+      <!-- Infinite Scroll Loading Sentinel -->
+      <div id="scroll-sentinel" class="scroll-sentinel"></div>
 
       <!-- No Results State -->
       <div id="no-results" class="no-results">
@@ -176,6 +224,9 @@
     <!-- Mobile Dismiss Swipe Bar Indicator -->
     <div class="lightbox-swipe-bar" id="lb-swipe-bar" title="Swipe down to close"></div>
 
+    <!-- Slideshow Progress Bar -->
+    <div class="lightbox-progress-bar" id="lb-progress-bar"></div>
+
     <!-- Lightbox Header -->
     <div class="lightbox-header">
       <div class="lightbox-title-wrap">
@@ -189,6 +240,34 @@
         <div class="lightbox-quality-pill" id="lb-quality-pill">Nikon Z6 III • 21.2 MB</div>
       </div>
       <div class="lightbox-actions">
+        <!-- Soothing Background Music Toggle -->
+        <button class="lightbox-icon-btn" id="lb-audio-btn" title="Play soothing background acoustic music">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path class="audio-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+
+        <!-- Native Share Sheet Button -->
+        <button class="lightbox-icon-btn" id="lb-share-btn" title="Share photo link (WhatsApp, AirDrop, iMessage)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </button>
+
+        <!-- Detailed Nikon EXIF Info -->
+        <button class="lightbox-icon-btn" id="lb-info-btn" title="Camera EXIF & Photography Specs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </button>
+
         <button class="lightbox-icon-btn" id="lb-zoom-btn" title="Toggle 100% Full Resolution Zoom (Z)">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
@@ -223,6 +302,20 @@
 
     <!-- Lightbox Main Stage -->
     <div class="lightbox-stage">
+      <!-- Detailed Nikon EXIF Modal Popover -->
+      <div class="lightbox-exif-modal" id="lb-exif-modal" role="dialog" aria-label="Nikon Z6 III Specifications">
+        <div class="exif-modal-header">
+          <div class="exif-modal-title">
+            <span class="exif-modal-icon">📷</span>
+            <span>Nikon Z6 III • EXIF Specs</span>
+          </div>
+          <button class="exif-modal-close" id="lb-exif-close" aria-label="Close EXIF specs">✕</button>
+        </div>
+        <div class="exif-modal-grid" id="lb-exif-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
       <button class="lightbox-nav-btn prev" id="lb-prev" title="Previous photo (←)">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
@@ -273,13 +366,21 @@
       <strong>0</strong> photos selected
     </div>
     <div class="batch-actions">
+      <button class="batch-download-btn batch-zip-btn" id="batch-zip-btn" title="Bundle all selected photos into a single ZIP file">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <span>Download as ZIP</span>
+      </button>
       <button class="batch-download-btn" id="batch-download-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        <span>Download Selected</span>
+        <span>Individual Files</span>
       </button>
       <button class="batch-cancel-btn" id="batch-cancel-btn">Cancel</button>
     </div>
