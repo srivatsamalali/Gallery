@@ -1234,6 +1234,93 @@
     el.albumsGrid.appendChild(guideCard);
   }
 
+  // --- Folder & Admin Session Timeout Engine (Strict 10-Minute Expiry) ---
+  const FOLDER_SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes session timeout
+
+  function isAlbumUnlocked(albumId) {
+    const timestampStr = sessionStorage.getItem('album_unlocked_time_' + albumId);
+    if (!timestampStr) {
+      sessionStorage.removeItem('album_unlocked_' + albumId);
+      return false;
+    }
+    const unlockTime = parseInt(timestampStr, 10);
+    if (isNaN(unlockTime)) {
+      sessionStorage.removeItem('album_unlocked_time_' + albumId);
+      sessionStorage.removeItem('album_unlocked_' + albumId);
+      return false;
+    }
+    const elapsed = Date.now() - unlockTime;
+    if (elapsed > FOLDER_SESSION_TIMEOUT_MS) {
+      // 10 minutes expired! Wipe unlock session
+      sessionStorage.removeItem('album_unlocked_time_' + albumId);
+      sessionStorage.removeItem('album_unlocked_' + albumId);
+      return false;
+    }
+    return true;
+  }
+
+  function setAlbumUnlocked(albumId) {
+    sessionStorage.setItem('album_unlocked_time_' + albumId, Date.now().toString());
+    sessionStorage.setItem('album_unlocked_' + albumId, 'true');
+  }
+
+  function lockAlbum(albumId) {
+    sessionStorage.removeItem('album_unlocked_time_' + albumId);
+    sessionStorage.removeItem('album_unlocked_' + albumId);
+  }
+
+  function isAdminVerified() {
+    const tStr = sessionStorage.getItem('admin_verified_time');
+    if (!tStr) {
+      sessionStorage.removeItem('admin_verified');
+      return false;
+    }
+    const t = parseInt(tStr, 10);
+    if (isNaN(t) || (Date.now() - t) > FOLDER_SESSION_TIMEOUT_MS) {
+      sessionStorage.removeItem('admin_verified_time');
+      sessionStorage.removeItem('admin_verified');
+      return false;
+    }
+    return true;
+  }
+
+  function setAdminVerified() {
+    sessionStorage.setItem('admin_verified_time', Date.now().toString());
+    sessionStorage.setItem('admin_verified', 'true');
+  }
+
+  function clearAdminVerified() {
+    sessionStorage.removeItem('admin_verified_time');
+    sessionStorage.removeItem('admin_verified');
+  }
+
+  function checkActiveFolderSessionExpiry() {
+    if (state.currentAlbumId) {
+      const currentAlbum = state.albums[state.currentAlbumId];
+      if (currentAlbum && currentAlbum.isPasswordProtected && currentAlbum.passwordHash) {
+        if (!isAlbumUnlocked(state.currentAlbumId)) {
+          if (state.lightboxOpen) closeLightbox();
+          if (state.selectionMode) toggleSelectionMode(false);
+          showDashboard();
+          showToast('Session Expired', `Folder "${currentAlbum.title}" session timed out after 10 minutes. Please enter password again.`, '🔒', 5000);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function checkAdminSessionTimeout() {
+    if (!isAdminVerified() && sessionStorage.getItem('admin_verified') === 'true') {
+      clearAdminVerified();
+      updateAdminAuthUI();
+      if (el.adminSuiteModal && el.adminSuiteModal.style.display !== 'none') {
+        el.adminSuiteModal.style.display = 'none';
+        showToast('Admin Session Expired', 'Admin session timed out after 10 minutes. Please re-authenticate.', '🔒', 4500);
+      }
+    }
+  }
+
   // --- Password Gate Verification ---
   function tryOpenAlbum(albumId, targetPhotoFilename = null) {
     const album = state.albums[albumId];
@@ -1244,7 +1331,7 @@
     }
 
     const isProtected = !!album.isPasswordProtected && !!album.passwordHash;
-    const isUnlocked = sessionStorage.getItem('album_unlocked_' + albumId) === 'true';
+    const isUnlocked = isAlbumUnlocked(albumId);
 
     if (isProtected && !isUnlocked) {
       promptAlbumPassword(album, targetPhotoFilename);
@@ -1277,10 +1364,10 @@
     const inputHash = await sha256(inputPwd);
 
     if (inputHash === album.passwordHash || inputPwd === MASTER_PASSCODE) {
-      sessionStorage.setItem('album_unlocked_' + album.id, 'true');
+      setAlbumUnlocked(album.id);
       if (el.passwordModal) el.passwordModal.style.display = 'none';
       confetti.burst(35);
-      showToast('Album Unlocked', `Welcome to "${album.title}"!`, '🔓', 3000);
+      showToast('Album Unlocked', `Welcome to "${album.title}"! (10 min session active)`, '🔓', 3500);
       openAlbum(album.id, targetPhotoFilename);
     } else {
       if (el.pwdErrorMsg) {
@@ -1297,7 +1384,7 @@
 
   // --- Admin Verification Gate (Strictly srivatsa.a.malali@gmail.com) ---
   function openAdminAuthModal() {
-    if (sessionStorage.getItem('admin_verified') === 'true') {
+    if (isAdminVerified()) {
       openAdminSuite();
       return;
     }
@@ -1334,11 +1421,11 @@
       if (passcode.startsWith('ghp_')) {
         localStorage.setItem('gh_token', passcode);
       }
-      sessionStorage.setItem('admin_verified', 'true');
+      setAdminVerified();
       updateAdminAuthUI();
       if (el.adminAuthModal) el.adminAuthModal.style.display = 'none';
       confetti.burst(30);
-      showToast('Admin Verified', `Welcome Srivatsa! Opening Folder Management Portal.`, '🛡️', 3000);
+      showToast('Admin Verified', `Welcome Srivatsa! Opening Folder Management Portal (10 min session).`, '🛡️', 3000);
       openAdminSuite();
     } else {
       if (el.adminAuthError) {
@@ -1350,19 +1437,19 @@
 
   // --- Admin Session & Logout Controller ---
   function updateAdminAuthUI() {
-    const isVerified = sessionStorage.getItem('admin_verified') === 'true';
+    const isVerified = isAdminVerified();
     if (el.btnAdminLogout) {
       el.btnAdminLogout.style.display = isVerified ? 'inline-flex' : 'none';
     }
     if (el.btnOpenAdmin) {
       el.btnOpenAdmin.title = isVerified
-        ? 'Manage Folders & Uploads (Admin Session Active)'
+        ? 'Manage Folders & Uploads (Admin Session Active - 10m)'
         : 'Manage Folders, Passwords, and Uploads';
     }
   }
 
   function handleAdminLogout() {
-    sessionStorage.removeItem('admin_verified');
+    clearAdminVerified();
     if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'none';
     updateAdminAuthUI();
     showToast('Logged Out', 'Admin session terminated. Passcode required to enter again.', '🔒', 3500);
@@ -1418,7 +1505,7 @@
 
   // --- Admin Security Check ---
   function checkAdminAccess() {
-    if (sessionStorage.getItem('admin_verified') !== 'true') {
+    if (!isAdminVerified()) {
       showToast('Admin Verification Required', `Only ${OWNER_EMAIL} can perform folder operations.`, '🔒', 3500);
       openAdminAuthModal();
       return false;
@@ -1454,20 +1541,20 @@
       const isProtected = !!album.isPasswordProtected && !!album.passwordHash;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>
-          <strong>${album.title}</strong>
-          <div style="font-size:0.75rem; color:var(--text-muted);">Folder: <code>${album.folder}</code></div>
+        <td data-label="Folder / Title">
+          <strong style="color:var(--text-primary); font-size:0.95rem;">${album.title}</strong>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">📁 <code>${album.folder}</code></div>
         </td>
-        <td>${album.photoCount || 0} photos</td>
-        <td>
+        <td data-label="Photos"><span style="font-weight:600;">${album.photoCount || 0}</span> photos</td>
+        <td data-label="Protection">
           <span class="${isProtected ? 'badge-upcoming badge-locked' : 'badge-upcoming'}">
             ${isProtected ? '🔒 Protected' : '🔓 Public'}
           </span>
         </td>
-        <td>
+        <td data-label="Actions">
           <div class="folder-actions-cell">
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.rename('${album.id}')">✏️ Rename</button>
-            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.password('${album.id}')">🔑 ${isProtected ? 'Change/Remove Pwd' : 'Set Pwd'}</button>
+            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.password('${album.id}')">${isProtected ? '🔑 Change Pwd' : '🔑 Set Pwd'}</button>
             <button type="button" class="btn-table-action danger" onclick="window.galleryAdmin.delete('${album.id}')">🗑️ Delete</button>
           </div>
         </td>
@@ -2670,6 +2757,24 @@
     initEvents();
     updateAdminAuthUI();
     handleUrlHash();
+
+    // Active session monitor (every 10 seconds, and on tab visibility/focus changes)
+    setInterval(() => {
+      checkActiveFolderSessionExpiry();
+      checkAdminSessionTimeout();
+    }, 10000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkActiveFolderSessionExpiry();
+        checkAdminSessionTimeout();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      checkActiveFolderSessionExpiry();
+      checkAdminSessionTimeout();
+    });
 
     // Unregister legacy service workers and clear caches
     if ('serviceWorker' in navigator) {
