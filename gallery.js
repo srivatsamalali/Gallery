@@ -11,7 +11,6 @@
     allPhotos: typeof PHOTOS_DATA !== 'undefined' ? PHOTOS_DATA : [],
     filteredPhotos: [],
     activeFilter: 'all',
-    activeChapter: 'all',
     searchQuery: '',
     sortBy: 'default',
     layout: 'masonry',
@@ -24,7 +23,6 @@
     favorites: new Set(JSON.parse(localStorage.getItem('bs_favorites') || '[]')),
     selectionMode: false,
     selectedPhotos: new Set(),
-    theme: 'light',
     renderedCount: 28,
   };
 
@@ -41,13 +39,10 @@
       landscape: document.getElementById('count-landscape'),
       favorites: document.getElementById('count-favorites'),
     },
-    chapterPills: document.querySelectorAll('.chapter-pill'),
     layoutBtns: document.querySelectorAll('.layout-btn'),
     sortSelect: document.getElementById('sort-select'),
     btnSelectMode: document.getElementById('btn-select-mode'),
     btnSlideshow: document.getElementById('btn-slideshow'),
-    themeToggle: document.getElementById('theme-toggle'),
-    themeText: document.getElementById('theme-text'),
     noResults: document.getElementById('no-results'),
     scrollProgress: document.getElementById('scroll-progress'),
     backToTop: document.getElementById('back-to-top'),
@@ -250,9 +245,9 @@
       result = result.filter((p) => p.filename.toLowerCase().includes(q) || p.title.toLowerCase().includes(q));
     }
 
-    // Timeline Chapter Filter
-    if (state.activeChapter && state.activeChapter !== 'all') {
-      const targetHour = parseInt(state.activeChapter, 10);
+    // Timeline Chapter Filter (if selected in sort dropdown)
+    if (state.sortBy && state.sortBy.startsWith('time-')) {
+      const targetHour = parseInt(state.sortBy.replace('time-', ''), 10);
       result = result.filter((p) => {
         if (!p.date) return false;
         const timePart = p.date.split(' ')[1];
@@ -272,7 +267,7 @@
     } else if (state.sortBy === 'size-asc') {
       result.sort((a, b) => a.sizeBytes - b.sizeBytes);
     } else {
-      // Default: numeric order of filename
+      // Default: numeric order of filename (chronological order)
       result.sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true }));
     }
 
@@ -1002,7 +997,8 @@
         } else {
           // Switch filter to all so photo is in view
           state.activeFilter = 'all';
-          state.activeChapter = 'all';
+          state.sortBy = 'default';
+          if (el.sortSelect) el.sortSelect.value = 'default';
           state.searchQuery = '';
           applyFiltersAndSort();
           const newIdx = state.filteredPhotos.findIndex((p) => p.filename === filename);
@@ -1234,28 +1230,11 @@
     return { toggle, isPlaying: () => isPlaying, stop };
   })();
 
-  // --- Studio Dark / Light Mode Theme Engine ---
-  function initTheme() {
-    const savedTheme = localStorage.getItem('bs_theme');
-    const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-    setTheme(theme);
-  }
-
-  function setTheme(theme) {
-    state.theme = theme;
-    document.body.dataset.theme = theme;
-    localStorage.setItem('bs_theme', theme);
-    if (el.themeText) {
-      el.themeText.textContent = theme === 'dark' ? 'Studio Dark' : 'Warm Light';
-    }
-  }
-
-  function toggleTheme() {
-    const newTheme = state.theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    showToast(newTheme === 'dark' ? 'Studio OLED Dark Active' : 'Warm Stone Light Active', newTheme === 'dark' ? 'Deep black background with gold highlights.' : 'Gentle warm cream gallery aesthetic.', newTheme === 'dark' ? '🌙' : '☀️', 2500);
-  }
+  // Reset any legacy dark theme settings
+  try {
+    localStorage.removeItem('bs_theme');
+    document.body.removeAttribute('data-theme');
+  } catch (e) {}
 
   // --- Fullscreen Toggle ---
   function toggleFullscreen() {
@@ -1566,21 +1545,6 @@
       });
     }
 
-    // Theme toggle button
-    if (el.themeToggle) {
-      el.themeToggle.addEventListener('click', toggleTheme);
-    }
-
-    // Timeline chapter pills
-    el.chapterPills.forEach((pill) => {
-      pill.addEventListener('click', () => {
-        el.chapterPills.forEach((p) => p.classList.remove('active'));
-        pill.classList.add('active');
-        state.activeChapter = pill.dataset.chapter;
-        applyFiltersAndSort();
-      });
-    });
-
     // Lightbox Controls
     el.lbClose.addEventListener('click', closeLightbox);
     el.lbNext.addEventListener('click', nextPhoto);
@@ -1659,7 +1623,6 @@
 
   // --- Bootstrap App ---
   function init() {
-    initTheme();
     initEvents();
     applyFiltersAndSort();
     handleUrlHash();
