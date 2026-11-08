@@ -65,6 +65,7 @@
 
     // Admin & Password Modals
     btnOpenAdmin: document.getElementById('btn-open-admin'),
+    btnAdminLogout: document.getElementById('btn-admin-logout'),
     passwordModal: document.getElementById('password-modal'),
     pwdModalTitle: document.getElementById('pwd-modal-title'),
     pwdModalSubtitle: document.getElementById('pwd-modal-subtitle'),
@@ -85,6 +86,7 @@
 
     adminSuiteModal: document.getElementById('admin-suite-modal'),
     adminSuiteClose: document.getElementById('admin-suite-close'),
+    adminSuiteLogout: document.getElementById('admin-suite-logout'),
     suiteTabBtns: document.querySelectorAll('.suite-tab-btn'),
     formCreateFolder: document.getElementById('form-create-folder'),
     newFolderName: document.getElementById('new-folder-name'),
@@ -1088,6 +1090,12 @@
         };
       });
       localStorage.setItem('gallery_custom_albums', JSON.stringify(customData));
+
+      // Auto-commit manifest update to GitHub if token is present
+      const token = localStorage.getItem('gh_token');
+      if (token) {
+        syncManifestToGitHub(token);
+      }
     } catch (e) {
       console.warn('Could not save custom albums to localStorage:', e);
     }
@@ -1321,6 +1329,7 @@
         localStorage.setItem('gh_token', passcode);
       }
       sessionStorage.setItem('admin_verified', 'true');
+      updateAdminAuthUI();
       if (el.adminAuthModal) el.adminAuthModal.style.display = 'none';
       confetti.burst(30);
       showToast('Admin Verified', `Welcome Srivatsa! Opening Folder Management Portal.`, '🛡️', 3000);
@@ -1330,6 +1339,74 @@
         el.adminAuthError.textContent = 'Incorrect security passcode or token. Access denied.';
         el.adminAuthError.style.display = 'block';
       }
+    }
+  }
+
+  // --- Admin Session & Logout Controller ---
+  function updateAdminAuthUI() {
+    const isVerified = sessionStorage.getItem('admin_verified') === 'true';
+    if (el.btnAdminLogout) {
+      el.btnAdminLogout.style.display = isVerified ? 'inline-flex' : 'none';
+    }
+    if (el.btnOpenAdmin) {
+      el.btnOpenAdmin.title = isVerified
+        ? 'Manage Folders & Uploads (Admin Session Active)'
+        : 'Manage Folders, Passwords, and Uploads';
+    }
+  }
+
+  function handleAdminLogout() {
+    sessionStorage.removeItem('admin_verified');
+    if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'none';
+    updateAdminAuthUI();
+    showToast('Logged Out', 'Admin session terminated. Passcode required to enter again.', '🔒', 3500);
+  }
+
+  // --- Auto-Sync Manifest to GitHub (For Mobile & Remote Edits) ---
+  async function syncManifestToGitHub(token) {
+    if (!token) return;
+    try {
+      const defaultAlbum = state.albums['baby-showers'] || Object.values(state.albums)[0];
+      const defaultPhotos = defaultAlbum ? (defaultAlbum.photos || []) : [];
+      const manifestCode = `// Auto-generated Multi-Folder Albums Manifest\nconst ALBUMS_DATA = ${JSON.stringify(state.albums, null, 2)};\n\nconst PHOTOS_DATA = ${JSON.stringify(defaultPhotos, null, 2)};\n`;
+      const base64Code = btoa(unescape(encodeURIComponent(manifestCode)));
+
+      let sha = null;
+      try {
+        const checkRes = await fetch('https://api.github.com/repos/srivatsamalali/Gallery/contents/photos-data.js?ref=main', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+          },
+        });
+        if (checkRes.ok) {
+          const data = await checkRes.json();
+          sha = data.sha;
+        }
+      } catch (e) {}
+
+      const payload = {
+        message: 'feat: update gallery albums and folder manifest',
+        content: base64Code,
+        branch: 'main',
+      };
+      if (sha) payload.sha = sha;
+
+      const res = await fetch('https://api.github.com/repos/srivatsamalali/Gallery/contents/photos-data.js', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        console.log('Manifest auto-synced to GitHub repository main branch!');
+      }
+    } catch (err) {
+      console.warn('Could not auto-sync manifest to GitHub:', err);
     }
   }
 
@@ -2502,6 +2579,14 @@
       });
     }
 
+    if (el.adminSuiteLogout) {
+      el.adminSuiteLogout.addEventListener('click', handleAdminLogout);
+    }
+
+    if (el.btnAdminLogout) {
+      el.btnAdminLogout.addEventListener('click', handleAdminLogout);
+    }
+
     // Suite tab switcher
     if (el.suiteTabBtns) {
       el.suiteTabBtns.forEach((btn) => {
@@ -2583,6 +2668,7 @@
   function init() {
     renderDashboard();
     initEvents();
+    updateAdminAuthUI();
     handleUrlHash();
 
     // Unregister legacy service workers and clear caches
