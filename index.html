@@ -13,7 +13,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=3.2.0_vault">
+  <link rel="stylesheet" href="styles.css?v=3.3.0_logout">
   <script>
     // Immediate reset to ensure pure warm champagne light theme
     try {
@@ -95,6 +95,9 @@
             <button type="button" id="btn-open-admin" class="btn-admin-manage" title="Manage Folders, Passwords, and Uploads" onclick="window.galleryAdmin && window.galleryAdmin.openAdmin ? window.galleryAdmin.openAdmin() : (document.getElementById('admin-auth-modal').style.display='flex')" style="display:inline-flex;align-items:center;gap:10px;padding:10px 22px;background:#ffffff;border:1.5px solid #c99e32;border-radius:9999px;color:#7a5c12;font-weight:700;cursor:pointer;font-size:0.92rem;box-shadow:0 4px 14px rgba(201,158,50,0.18);">
               <span class="admin-gear-icon">⚙️</span>
               <span>Manage Folders & Uploads</span>
+            </button>
+            <button type="button" id="btn-admin-logout" class="btn-admin-logout" style="display: none;" title="Log Out of Admin Mode">
+              <span>🚪 Log Out</span>
             </button>
           </div>
         </div>
@@ -542,7 +545,12 @@
           <div class="admin-verified-badge"><span>✓ Verified Admin:</span> srivatsa.a.malali@gmail.com</div>
           <h2 class="suite-title">Folder Management & Upload Portal</h2>
         </div>
-        <button type="button" id="admin-suite-close" class="modal-close-x" title="Close">✕</button>
+        <div class="suite-header-actions">
+          <button type="button" id="admin-suite-logout" class="btn-suite-logout" title="Log Out from Admin Session">
+            <span>🚪 Log Out</span>
+          </button>
+          <button type="button" id="admin-suite-close" class="modal-close-x" title="Close">✕</button>
+        </div>
       </div>
 
       <!-- Suite Navigation Tabs -->
@@ -653,8 +661,8 @@
   </footer>
 
   <!-- Scripts with Cache Busting -->
-  <script src="photos-data.js?v=3.2.0_vault"></script>
-  <script src="gallery.js?v=3.2.0_vault"></script>
+  <script src="photos-data.js?v=3.3.0_logout"></script>
+  <script src="gallery.js?v=3.3.0_logout"></script>
 </body>
 </html>
 

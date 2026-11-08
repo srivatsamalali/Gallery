@@ -2940,6 +2940,55 @@ body::before {
   color: var(--text-primary);
 }
 
+.suite-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-suite-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid rgba(197, 48, 48, 0.35);
+  border-radius: var(--radius-full);
+  color: #c53030;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-suite-logout:hover {
+  background: #fff5f5;
+  border-color: #c53030;
+  transform: translateY(-1px);
+}
+
+.btn-admin-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: #ffffff;
+  border: 1.5px solid rgba(197, 48, 48, 0.35);
+  border-radius: var(--radius-full);
+  color: #c53030;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all var(--transition-fast);
+}
+
+.btn-admin-logout:hover {
+  background: #fff5f5;
+  border-color: #c53030;
+  transform: translateY(-1px);
+}
+
 .modal-close-x {
   background: none;
   border: none;
