@@ -1,0 +1,19 @@
+{
+  "name": "Baby Showers Photo Gallery",
+  "short_name": "Baby Showers",
+  "description": "Nikon Z6 III Original High Fidelity Photo Gallery (24.4 MP)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c0b0a",
+  "theme_color": "#c99e32",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
