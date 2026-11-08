@@ -1,6 +1,30 @@
-# Baby Showers — Original High-Resolution Photo Gallery
+# Srivatsa's Photography Archives & Event Photo Vault
 
-A modern, luxurious photo gallery tailored for **GitHub Pages**, specifically built for showcasing 277 photos taken on the **Nikon Z6 III** in **100% untouched original file size & resolution (6048 × 4032, 24.4 MP)**.
+A modern, ultra-luxurious photography portfolio and event archive tailored for **GitHub Pages**, specifically built for showcasing original photoshoot albums taken on the **Nikon Z6 III** in **100% untouched original file size & resolution (6048 × 4032, 24.4 MP)**.
+
+---
+
+## 📁 Multi-Folder Architecture & Dashboard
+
+The application features a centralized **Vault Dashboard** that organizes photos into separate event folders:
+1. **🍼 Baby Showers** (277 Photos • 4.61 GB • Nikon Z6 III)
+2. **💍 Pre Wedding Shoot** (Upcoming collection ready for upload)
+3. **🪔 Wedding Celebrations** (Upcoming collection)
+
+### How to Add New Event Folders Going Forward:
+1. Create a new folder in this root directory (e.g. `Pre Wedding Shoot/` or `Vacation 2026/`).
+2. Copy your original full-resolution photos into that folder.
+3. Run the automated manifest generator:
+   ```bash
+   python3 generate_manifest.py
+   ```
+4. Commit & push:
+   ```bash
+   git add .
+   git commit -m "feat: add Pre Wedding Shoot photos"
+   git push origin main gh-pages
+   ```
+The dashboard automatically detects the new folder, generates crisp retina web thumbnails, computes total file sizes, and surfaces the new collection on the home dashboard!
 
 ---
 

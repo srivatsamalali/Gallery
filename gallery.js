@@ -8,6 +8,8 @@
 
   // --- State ---
   const state = {
+    albums: typeof ALBUMS_DATA !== 'undefined' ? ALBUMS_DATA : {},
+    currentAlbumId: null,
     allPhotos: typeof PHOTOS_DATA !== 'undefined' ? PHOTOS_DATA : [],
     filteredPhotos: [],
     activeFilter: 'all',
@@ -28,6 +30,26 @@
 
   // --- DOM Elements ---
   const el = {
+    // Dashboard & Navigation Elements
+    dashboardView: document.getElementById('dashboard-view'),
+    albumView: document.getElementById('album-view'),
+    albumsGrid: document.getElementById('albums-grid'),
+    dashAlbumCount: document.getElementById('dash-album-count'),
+    dashPhotoCount: document.getElementById('dash-photo-count'),
+    dashStorageCount: document.getElementById('dash-storage-count'),
+    btnBackDashboard: document.getElementById('btn-back-dashboard'),
+    breadcrumbDashLink: document.getElementById('breadcrumb-dash-link'),
+    navAlbumTitle: document.getElementById('nav-album-title'),
+    albumSelectDropdown: document.getElementById('album-select-dropdown'),
+    albumHero: document.getElementById('album-hero'),
+    albumTitle: document.getElementById('album-title'),
+    albumBadge: document.getElementById('album-badge'),
+    albumDescription: document.getElementById('album-description'),
+    statAlbumPhotos: document.getElementById('stat-album-photos'),
+    statAlbumSize: document.getElementById('stat-album-size'),
+    statAlbumCamera: document.getElementById('stat-album-camera'),
+
+    // Gallery Elements
     galleryContainer: document.getElementById('gallery-container'),
     scrollSentinel: document.getElementById('scroll-sentinel'),
     searchInput: document.getElementById('search-input'),
@@ -753,7 +775,8 @@
     // Deep link URL hash update
     const photo = state.filteredPhotos[index];
     if (photo) {
-      history.replaceState(null, '', `#photo=${encodeURIComponent(photo.filename)}`);
+      const albumPrefix = state.currentAlbumId ? `album=${state.currentAlbumId}&` : '';
+      history.replaceState(null, '', `#${albumPrefix}photo=${encodeURIComponent(photo.filename)}`);
     }
   }
 
@@ -767,7 +790,9 @@
     resetZoom();
 
     // Clean hash on close
-    if (window.location.hash.startsWith('#photo=')) {
+    if (state.currentAlbumId) {
+      history.replaceState(null, '', `#album=${state.currentAlbumId}`);
+    } else {
       history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }
@@ -807,7 +832,8 @@
     el.lbQualityPill.textContent = `Nikon Z6 III • ${photo.sizeFormatted}`;
 
     // Deep link hash update
-    history.replaceState(null, '', `#photo=${encodeURIComponent(photo.filename)}`);
+    const albumPrefix = state.currentAlbumId ? `album=${state.currentAlbumId}&` : '';
+    history.replaceState(null, '', `#${albumPrefix}photo=${encodeURIComponent(photo.filename)}`);
 
     // Load preview with smooth cross-fade
     el.lbImg.style.opacity = '0.3';
@@ -945,11 +971,13 @@
     const photo = state.filteredPhotos[state.currentIndex];
     if (!photo) return;
 
-    const shareUrl = `${window.location.origin}${window.location.pathname}#photo=${encodeURIComponent(photo.filename)}`;
+    const albumPrefix = state.currentAlbumId ? `album=${state.currentAlbumId}&` : '';
+    const shareUrl = `${window.location.origin}${window.location.pathname}#${albumPrefix}photo=${encodeURIComponent(photo.filename)}`;
+    const albumTitle = state.currentAlbumId && state.albums[state.currentAlbumId] ? state.albums[state.currentAlbumId].title : 'Photo Archive';
     if (navigator.share) {
       navigator.share({
-        title: `${photo.title} — Baby Showers Gallery`,
-        text: `Look at this 24 MP photo from the Baby Showers celebration (${photo.title})!`,
+        title: `${photo.title} — ${albumTitle}`,
+        text: `Look at this 24 MP photo from ${albumTitle} (${photo.title})!`,
         url: shareUrl,
       }).catch((err) => {
         if (err.name !== 'AbortError') copyToClipboard(shareUrl);
@@ -985,26 +1013,227 @@
     document.body.removeChild(ta);
   }
 
-  function handleUrlHash() {
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#photo=')) {
-      const filename = decodeURIComponent(hash.replace('#photo=', ''));
-      const idx = state.allPhotos.findIndex((p) => p.filename === filename);
-      if (idx !== -1) {
-        const filteredIdx = state.filteredPhotos.findIndex((p) => p.filename === filename);
-        if (filteredIdx !== -1) {
-          openLightbox(filteredIdx);
-        } else {
-          // Switch filter to all so photo is in view
-          state.activeFilter = 'all';
-          state.sortBy = 'default';
-          if (el.sortSelect) el.sortSelect.value = 'default';
-          state.searchQuery = '';
-          applyFiltersAndSort();
-          const newIdx = state.filteredPhotos.findIndex((p) => p.filename === filename);
-          if (newIdx !== -1) openLightbox(newIdx);
-        }
+  // --- Multi-Album Dashboard Engine ---
+  function renderDashboard() {
+    if (!el.albumsGrid) return;
+
+    const albums = Object.values(state.albums);
+    const activeAlbums = albums.filter((a) => a.status === 'active' || (a.photos && a.photos.length > 0));
+    const totalPhotos = activeAlbums.reduce((sum, a) => sum + (a.photoCount || 0), 0);
+    const totalBytes = activeAlbums.reduce((sum, a) => sum + (a.totalSizeBytes || 0), 0);
+    const totalGB = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
+
+    if (el.dashAlbumCount) el.dashAlbumCount.textContent = `${activeAlbums.length} Active Album${activeAlbums.length === 1 ? '' : 's'}`;
+    if (el.dashPhotoCount) el.dashPhotoCount.textContent = totalPhotos.toLocaleString();
+    if (el.dashStorageCount) el.dashStorageCount.textContent = `${totalGB} GB`;
+
+    // Populate Quick Switch Dropdown
+    if (el.albumSelectDropdown) {
+      el.albumSelectDropdown.innerHTML =
+        '<option value="">📁 Switch Album...</option>' +
+        albums.map((a) => `<option value="${a.id}">${a.title} (${a.photoCount || 0})</option>`).join('') +
+        '<option value="__dashboard">🏠 All Albums (Dashboard)</option>';
+    }
+
+    // Populate Albums Grid
+    el.albumsGrid.innerHTML = '';
+
+    albums.forEach((album) => {
+      const isActive = album.status === 'active' || (album.photos && album.photos.length > 0);
+      const card = document.createElement('div');
+      card.className = 'album-card';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.dataset.albumId = album.id;
+
+      let coverHtml = '';
+      if (album.coverThumb) {
+        coverHtml = `
+          <div class="album-card-cover">
+            <img src="${album.coverThumb}" alt="${album.title} Cover" loading="lazy">
+          </div>
+        `;
+      } else {
+        const isWedding = album.id.includes('wedding');
+        coverHtml = `
+          <div class="album-card-cover">
+            <div class="album-card-cover-placeholder">
+              <span class="placeholder-icon">${isWedding ? '💍' : '📸'}</span>
+              <span class="placeholder-tag">${album.folder}</span>
+            </div>
+          </div>
+        `;
       }
+
+      card.innerHTML = `
+        ${coverHtml}
+        <div class="album-card-body">
+          <div class="album-card-badges">
+            <span class="${isActive ? 'badge-active' : 'badge-upcoming'}">
+              ${isActive ? `● Active • ${album.photoCount} Photos` : '○ Upcoming Collection'}
+            </span>
+            <span class="badge-upcoming">${album.camera || 'Nikon Z6 III'}</span>
+          </div>
+          <h3 class="album-card-title">${album.title}</h3>
+          <div class="album-card-folder">
+            <span>📁 Folder:</span> <code>${album.folder}</code>
+          </div>
+          <p class="album-card-desc">${album.description || 'Preserved in 100% original uncompressed quality.'}</p>
+          <div class="album-card-footer">
+            <span class="album-card-stats">${isActive ? `${album.totalSizeFormatted} • 24.4 MP` : 'Ready for upload'}</span>
+            <button class="album-card-btn ${isActive ? '' : 'btn-upcoming'}" type="button">
+              <span>${isActive ? 'Explore Album →' : 'Preview Folder'}</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        openAlbum(album.id);
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openAlbum(album.id);
+        }
+      });
+
+      el.albumsGrid.appendChild(card);
+    });
+
+    // Add Guide Card
+    const guideCard = document.createElement('div');
+    guideCard.className = 'add-folder-card';
+    guideCard.innerHTML = `
+      <div class="add-folder-icon">📂</div>
+      <h3 class="add-folder-title">Uploading Future Folders</h3>
+      <p class="add-folder-desc">Whenever you have a new photoshoot or celebration, simply:</p>
+      <ol class="add-folder-steps">
+        <li><span class="step-num">1</span> Create a new folder (e.g. <code>Pre Wedding Shoot</code>)</li>
+        <li><span class="step-num">2</span> Copy original photos into it</li>
+        <li><span class="step-num">3</span> Run <code>python3 generate_manifest.py</code></li>
+      </ol>
+    `;
+    el.albumsGrid.appendChild(guideCard);
+  }
+
+  function openAlbum(albumId, targetPhotoFilename = null) {
+    const album = state.albums[albumId];
+    if (!album) {
+      showToast('Album Not Found', 'Showing all albums on dashboard.', '⚠️', 3000);
+      showDashboard();
+      return;
+    }
+
+    state.currentAlbumId = albumId;
+    state.allPhotos = album.photos || [];
+    state.renderedCount = 28;
+
+    // Update Breadcrumb & Nav
+    if (el.navAlbumTitle) el.navAlbumTitle.textContent = album.title;
+    if (el.albumSelectDropdown) el.albumSelectDropdown.value = albumId;
+
+    // Update Album Hero
+    if (el.albumTitle) {
+      if (album.id === 'baby-showers') {
+        el.albumTitle.innerHTML = 'Baby <span>Showers</span>';
+      } else {
+        el.albumTitle.textContent = album.title;
+      }
+    }
+
+    if (el.albumBadge) {
+      if (album.id === 'baby-showers') {
+        el.albumBadge.innerHTML = '<span>🍼</span> Welcoming Our Little Blessing';
+      } else if (album.id.includes('wedding')) {
+        el.albumBadge.innerHTML = '<span>💍</span> Timeless Love & Romance';
+      } else {
+        el.albumBadge.innerHTML = `<span>📸</span> ${album.title}`;
+      }
+    }
+
+    if (el.albumDescription) {
+      el.albumDescription.innerHTML = `
+        ${album.description || 'A timeless collection preserved in bit-for-bit uncompressed original quality.'}
+        Anyone with this link can view in large preview and download any original photo.
+        <span class="hero-creator-tag">✨ Created by Srivatsa</span>
+      `;
+    }
+
+    if (el.statAlbumPhotos) el.statAlbumPhotos.textContent = (album.photoCount || 0).toLocaleString();
+    if (el.statAlbumSize) el.statAlbumSize.textContent = album.totalSizeFormatted || '0 MB';
+    if (el.statAlbumCamera) el.statAlbumCamera.textContent = album.camera || 'Nikon Z6 III';
+
+    // Toggle views
+    if (el.dashboardView) el.dashboardView.style.display = 'none';
+    if (el.albumView) el.albumView.style.display = 'block';
+
+    // Apply filters and sort
+    state.activeFilter = 'all';
+    state.searchQuery = '';
+    state.sortBy = 'default';
+    if (el.searchInput) el.searchInput.value = '';
+    if (el.sortSelect) el.sortSelect.value = 'default';
+    el.filterTabs.forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.filter === 'all');
+    });
+
+    applyFiltersAndSort();
+
+    // Check if album has 0 photos (upcoming)
+    if (state.allPhotos.length === 0) {
+      showToast('Empty Album', `Drop photos into folder "${album.folder}" and run generate_manifest.py.`, 'ℹ️', 4500);
+    }
+
+    // Update URL hash
+    if (targetPhotoFilename) {
+      window.location.hash = `album=${albumId}&photo=${encodeURIComponent(targetPhotoFilename)}`;
+      const pIdx = state.filteredPhotos.findIndex((p) => p.filename === targetPhotoFilename);
+      if (pIdx !== -1) {
+        openLightbox(pIdx);
+      }
+    } else {
+      window.location.hash = `album=${albumId}`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function showDashboard() {
+    state.currentAlbumId = null;
+    if (state.lightboxOpen) closeLightbox();
+    if (state.selectionMode) toggleSelectionMode(false);
+
+    if (el.dashboardView) el.dashboardView.style.display = 'block';
+    if (el.albumView) el.albumView.style.display = 'none';
+
+    if (window.location.hash && !window.location.hash.startsWith('#photo=')) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleUrlHash() {
+    const hash = window.location.hash.trim();
+    if (!hash || hash === '#' || hash === '#dashboard') {
+      showDashboard();
+      return;
+    }
+
+    const cleanHash = hash.replace(/^#/, '');
+    const params = new URLSearchParams(cleanHash);
+    const albumParam = params.get('album');
+    const photoParam = params.get('photo');
+
+    if (albumParam && state.albums[albumParam]) {
+      openAlbum(albumParam, photoParam);
+    } else if (cleanHash.startsWith('photo=')) {
+      const legacyPhoto = decodeURIComponent(cleanHash.replace('photo=', ''));
+      openAlbum('baby-showers', legacyPhoto);
+    } else {
+      showDashboard();
     }
   }
 
@@ -1605,16 +1834,35 @@
       el.batchCancelBtn.addEventListener('click', () => toggleSelectionMode(false));
     }
 
+    // Dashboard navigation buttons
+    if (el.btnBackDashboard) {
+      el.btnBackDashboard.addEventListener('click', () => showDashboard());
+    }
+    if (el.breadcrumbDashLink) {
+      el.breadcrumbDashLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showDashboard();
+      });
+    }
+
+    // Quick switch album dropdown
+    if (el.albumSelectDropdown) {
+      el.albumSelectDropdown.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === '__dashboard' || !val) {
+          showDashboard();
+        } else {
+          openAlbum(val);
+        }
+      });
+    }
+
     // Double click to zoom in Lightbox
     el.lbImg.addEventListener('dblclick', toggleZoom);
 
     // Deep linking URL hashchange listener
     window.addEventListener('hashchange', () => {
-      if (!window.location.hash && state.lightboxOpen) {
-        closeLightbox();
-      } else if (window.location.hash.startsWith('#photo=')) {
-        handleUrlHash();
-      }
+      handleUrlHash();
     });
 
     // Initialize Mobile Touch Gestures
@@ -1623,8 +1871,8 @@
 
   // --- Bootstrap App ---
   function init() {
+    renderDashboard();
     initEvents();
-    applyFiltersAndSort();
     handleUrlHash();
 
     // Unregister legacy service workers and clear caches

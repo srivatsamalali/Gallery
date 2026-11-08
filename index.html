@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-  <title>Baby Showers — Original Quality Photo Gallery</title>
-  <meta name="description" content="Baby Showers celebration photo album in full 24 MP original resolution (Nikon Z6 III). Browse, preview, and download original untouched photos.">
+  <title>Srivatsa's Photo Vault — Original Quality Archives</title>
+  <meta name="description" content="Celebration photo archives in full 24 MP original resolution (Nikon Z6 III). Browse, preview, and download original untouched photos. Created by Srivatsa.">
   <meta name="theme-color" content="#fbf9f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,7 +13,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=20261108c">
+  <link rel="stylesheet" href="styles.css?v=20261108d">
   <script>
     // Immediate reset to ensure pure warm champagne light theme
     try {
@@ -43,41 +43,125 @@
   <!-- Confetti Celebration Canvas -->
   <canvas id="confetti-canvas"></canvas>
 
-  <!-- Hero Header Section -->
-  <header class="hero">
-    <div class="container">
-      <div class="hero-badge-wrap">
-        <div class="hero-badge">
-          <span>🍼</span> Welcoming Our Little Blessing
+  <!-- =========================================================================
+       DASHBOARD VIEW: High-Level Event Albums Directory
+       ========================================================================= -->
+  <div id="dashboard-view" class="dashboard-view">
+    <!-- Dashboard Hero Header -->
+    <header class="dash-hero">
+      <div class="container">
+        <div class="dash-badge-wrap">
+          <div class="dash-badge">
+            <span>✨</span> Srivatsa's Photography Archives
+          </div>
         </div>
-      </div>
-      <h1 class="hero-title">Baby <span>Showers</span></h1>
-      <p class="hero-description">
-        A timeless collection of 277 moments, captured on the Nikon Z6 III and preserved in bit-for-bit uncompressed original quality. Anyone with this link can view in large preview and download any original photo.
-        <span class="hero-creator-tag">✨ Created by Srivatsa</span>
-      </p>
+        <h1 class="dash-title">Original Quality <span>Photo Vault</span></h1>
+        <p class="dash-description">
+          A timeless collection of celebratory moments, preserved in bit-for-bit uncompressed original quality (Nikon Z6 III • 24.4 MP). Select an album below to explore high-definition previews and download original photos.
+          <span class="hero-creator-tag">✨ Created by Srivatsa</span>
+        </p>
 
-      <!-- Stats / Quality Badges -->
-      <div class="hero-stats">
-        <div class="stat-pill" title="Every photo in the album">
-          <span class="stat-icon">📸</span>
-          <span><strong>277</strong> Original Photos</span>
-        </div>
-        <div class="stat-pill" title="Original DSLR raw JPEG quality without compression">
-          <span class="stat-icon">💾</span>
-          <span><strong>4.61 GB</strong> Total Quality</span>
-        </div>
-        <div class="stat-pill" title="Full native camera resolution">
-          <span class="stat-icon">📐</span>
-          <span><strong>6048 × 4032</strong> (24.4 MP)</span>
-        </div>
-        <div class="stat-pill" title="Nikon Z6 III Camera">
-          <span class="stat-icon">✨</span>
-          <span><strong>Nikon Z6 III</strong> Sensor</span>
+        <!-- Global Archive Stats -->
+        <div class="dash-stats">
+          <div class="stat-pill" title="Active event albums">
+            <span class="stat-icon">📁</span>
+            <span><strong id="dash-album-count">1</strong> Active Album</span>
+          </div>
+          <div class="stat-pill" title="Total original photos across all albums">
+            <span class="stat-icon">📸</span>
+            <span><strong id="dash-photo-count">277</strong> Original Photos</span>
+          </div>
+          <div class="stat-pill" title="Total archive size in bit-for-bit raw JPEG quality">
+            <span class="stat-icon">💾</span>
+            <span><strong id="dash-storage-count">4.61 GB</strong> Master Quality</span>
+          </div>
+          <div class="stat-pill" title="Primary Camera System">
+            <span class="stat-icon">✨</span>
+            <span><strong>Nikon Z6 III</strong> Sensor</span>
+          </div>
         </div>
       </div>
-    </div>
-  </header>
+    </header>
+
+    <!-- Albums Grid Section -->
+    <section class="albums-section">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-heading">Event Folders & Collections</h2>
+            <p class="section-subheading">Choose any event collection to browse its full high-resolution gallery and download originals</p>
+          </div>
+        </div>
+
+        <div class="albums-grid" id="albums-grid">
+          <!-- Populated dynamically from ALBUMS_DATA -->
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- =========================================================================
+       ALBUM VIEW: Individual Event Gallery & Controls
+       ========================================================================= -->
+  <div id="album-view" class="album-view" style="display: none;">
+    <!-- Album Breadcrumb Navigation Bar -->
+    <nav class="album-nav-bar" id="album-nav-bar">
+      <div class="container nav-container">
+        <button id="btn-back-dashboard" class="btn-back-dashboard" title="Back to All Albums Dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>All Albums</span>
+        </button>
+        <div class="album-breadcrumbs">
+          <a href="#" class="breadcrumb-link" id="breadcrumb-dash-link">Dashboard</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current" id="nav-album-title">Baby Showers</span>
+        </div>
+        <div class="album-quick-switch">
+          <select id="album-select-dropdown" class="action-btn" title="Quick Switch Album">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Header Section for Selected Album -->
+    <header class="hero" id="album-hero">
+      <div class="container">
+        <div class="hero-badge-wrap">
+          <div class="hero-badge" id="album-badge">
+            <span>🍼</span> Welcoming Our Little Blessing
+          </div>
+        </div>
+        <h1 class="hero-title" id="album-title">Baby <span>Showers</span></h1>
+        <p class="hero-description" id="album-description">
+          A timeless collection of 277 moments, captured on the Nikon Z6 III and preserved in bit-for-bit uncompressed original quality. Anyone with this link can view in large preview and download any original photo.
+          <span class="hero-creator-tag">✨ Created by Srivatsa</span>
+        </p>
+
+        <!-- Stats / Quality Badges -->
+        <div class="hero-stats" id="album-stats">
+          <div class="stat-pill" title="Every photo in the album">
+            <span class="stat-icon">📸</span>
+            <span><strong id="stat-album-photos">277</strong> Original Photos</span>
+          </div>
+          <div class="stat-pill" title="Original DSLR raw JPEG quality without compression">
+            <span class="stat-icon">💾</span>
+            <span><strong id="stat-album-size">4.61 GB</strong> Total Quality</span>
+          </div>
+          <div class="stat-pill" title="Full native camera resolution">
+            <span class="stat-icon">📐</span>
+            <span><strong>6048 × 4032</strong> (24.4 MP)</span>
+          </div>
+          <div class="stat-pill" title="Nikon Z6 III Camera">
+            <span class="stat-icon">✨</span>
+            <span id="stat-album-camera"><strong>Nikon Z6 III</strong> Sensor</span>
+          </div>
+        </div>
+      </div>
+    </header>
 
   <!-- Sticky Controls & Filters Bar -->
   <div class="sticky-bar-wrapper">
@@ -200,6 +284,7 @@
       </div>
     </div>
   </main>
+  </div><!-- /#album-view -->
 
   <!-- Fullscreen Lightbox / Large Preview Modal -->
   <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Photo Preview">
@@ -381,9 +466,9 @@
   <!-- Footer -->
   <footer class="gallery-footer">
     <div class="container">
-      <div class="footer-logo">Baby <span>Showers</span></div>
+      <div class="footer-logo">Photo <span>Vault</span></div>
       <p class="footer-meta">
-        277 original full-resolution photographs • Captured with Nikon Z6 III (24.4 Megapixels) • Zero compression applied • Created by Srivatsa.
+        Original full-resolution photography archives • Captured with Nikon Z6 III (24.4 Megapixels) • Zero compression applied • Created by Srivatsa.
       </p>
       <div class="footer-badge">
         Hosted on GitHub Pages • Original File Size Preserved • Created by Srivatsa
@@ -392,8 +477,8 @@
   </footer>
 
   <!-- Scripts with Cache Busting -->
-  <script src="photos-data.js?v=20261108c"></script>
-  <script src="gallery.js?v=20261108c"></script>
+  <script src="photos-data.js?v=20261108d"></script>
+  <script src="gallery.js?v=20261108d"></script>
 </body>
 </html>
 

@@ -14,6 +14,7 @@ const ALBUMS_DATA = {
     "coverThumb": "thumbnails/DSC_0306.JPG",
     "coverOriginal": "Baby Showers/DSC_0306.JPG",
     "camera": "Nikon Z6 III",
+    "status": "active",
     "photos": [
       {
         "filename": "DSC_0306.JPG",
@@ -5279,6 +5280,40 @@ const ALBUMS_DATA = {
         "id": 277
       }
     ]
+  },
+  "pre-wedding-shoot": {
+    "id": "pre-wedding-shoot",
+    "title": "Pre Wedding Shoot",
+    "folder": "Pre Wedding Shoot",
+    "description": "Portraits & romantic golden hour moments.",
+    "date": "Upcoming 2026",
+    "photoCount": 0,
+    "portraitsCount": 0,
+    "landscapesCount": 0,
+    "totalSizeBytes": 0,
+    "totalSizeFormatted": "0 MB",
+    "coverThumb": "",
+    "coverOriginal": "",
+    "camera": "Nikon Z6 III",
+    "status": "upcoming",
+    "photos": []
+  },
+  "wedding-celebrations": {
+    "id": "wedding-celebrations",
+    "title": "Wedding Celebrations",
+    "folder": "Wedding Celebrations",
+    "description": "Portraits & romantic golden hour moments.",
+    "date": "Upcoming 2026",
+    "photoCount": 0,
+    "portraitsCount": 0,
+    "landscapesCount": 0,
+    "totalSizeBytes": 0,
+    "totalSizeFormatted": "0 MB",
+    "coverThumb": "",
+    "coverOriginal": "",
+    "camera": "Nikon Z6 III",
+    "status": "upcoming",
+    "photos": []
   }
 };
 
