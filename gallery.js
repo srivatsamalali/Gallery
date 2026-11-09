@@ -1123,31 +1123,105 @@
     document.body.removeChild(ta);
   }
 
+  // --- Format Bytes Helper ---
+  function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return '0 MB';
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb >= 1) return `${gb.toFixed(2)} GB`;
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
+  }
+
+  // --- Sanitize Albums (Eliminates dead blob: URLs, calculates sizes & counts) ---
+  function sanitizeAlbumsForStorage(albums) {
+    const clean = {};
+    Object.keys(albums || {}).forEach((id) => {
+      const a = albums[id];
+      if (!a) return;
+      const folder = a.folder || a.title || id;
+
+      const cleanPhotos = (a.photos || []).map((p, idx) => {
+        const pFolder = p.folder || folder;
+        let originalUrl = p.originalUrl || '';
+        let thumbUrl = p.thumbUrl || '';
+        if (!originalUrl || originalUrl.startsWith('blob:')) {
+          originalUrl = `${pFolder}/${p.filename}`;
+        }
+        if (!thumbUrl || thumbUrl.startsWith('blob:')) {
+          thumbUrl = `${pFolder}/${p.filename}`;
+        }
+        const sizeBytes = p.sizeBytes || 0;
+        return {
+          filename: p.filename,
+          title: p.title || p.filename.replace(/\.[^/.]+$/, ''),
+          folder: pFolder,
+          originalUrl,
+          thumbUrl,
+          sizeBytes,
+          sizeFormatted: p.sizeFormatted || formatBytes(sizeBytes),
+          width: p.width || 6048,
+          height: p.height || 4032,
+          displayWidth: p.displayWidth || 6048,
+          displayHeight: p.displayHeight || 4032,
+          orientation: p.orientation || 1,
+          isPortrait: !!p.isPortrait,
+          aspectRatio: p.aspectRatio || 1.5,
+          date: p.date || new Date().toLocaleDateString('en-US'),
+          camera: p.camera || 'Original DSLR',
+          id: p.id || (idx + 1),
+        };
+      });
+
+      let coverThumb = a.coverThumb || '';
+      if (!coverThumb || coverThumb.startsWith('blob:')) {
+        coverThumb = cleanPhotos[0] ? cleanPhotos[0].thumbUrl : '';
+      }
+
+      let coverOriginal = a.coverOriginal || '';
+      if (!coverOriginal || coverOriginal.startsWith('blob:')) {
+        coverOriginal = cleanPhotos[0] ? cleanPhotos[0].originalUrl : '';
+      }
+
+      const totalSizeBytes = cleanPhotos.length > 0
+        ? cleanPhotos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0)
+        : (a.totalSizeBytes || 0);
+
+      const totalSizeFormatted = totalSizeBytes > 0
+        ? formatBytes(totalSizeBytes)
+        : (a.totalSizeFormatted && a.totalSizeFormatted !== '0 MB' ? a.totalSizeFormatted : '0 MB');
+
+      const portraitsCount = cleanPhotos.filter((p) => p.isPortrait).length;
+      const landscapesCount = cleanPhotos.length - portraitsCount;
+
+      clean[id] = {
+        id: a.id || id,
+        title: a.title || folder,
+        folder: a.folder || folder,
+        description: a.description || 'Preserved in 100% original uncompressed quality. Created by Srivatsa.',
+        date: a.date || 'Upcoming 2026',
+        photoCount: cleanPhotos.length,
+        portraitsCount,
+        landscapesCount,
+        totalSizeBytes,
+        totalSizeFormatted,
+        coverThumb,
+        coverOriginal,
+        status: cleanPhotos.length > 0 ? 'active' : (a.status || 'upcoming'),
+        isPasswordProtected: !!a.isPasswordProtected,
+        passwordHash: a.passwordHash || '',
+        photos: cleanPhotos,
+      };
+    });
+    return clean;
+  }
+
   // --- Storage Helper for Custom Folders & Passwords ---
   function saveCustomAlbums() {
     try {
-      const customData = {};
-      Object.keys(state.albums).forEach((id) => {
-        const a = state.albums[id];
-        customData[id] = {
-          id: a.id,
-          title: a.title,
-          folder: a.folder,
-          description: a.description,
-          isPasswordProtected: !!a.isPasswordProtected,
-          passwordHash: a.passwordHash || '',
-          status: a.status,
-          date: a.date,
-          photoCount: a.photoCount || 0,
-          totalSizeBytes: a.totalSizeBytes || 0,
-          totalSizeFormatted: a.totalSizeFormatted || '0 MB',
-          coverThumb: a.coverThumb || '',
-          photos: a.photos || [],
-        };
-      });
-      localStorage.setItem('gallery_custom_albums', JSON.stringify(customData));
+      state.albums = sanitizeAlbumsForStorage(state.albums);
+      localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
 
-      // Auto-commit manifest update directly to GitHub repository
+      // Auto-commit manifest update directly to GitHub repository (gh-pages & main)
       const token = getActiveToken();
       if (token) {
         syncManifestToGitHub(token);
@@ -1162,11 +1236,16 @@
       const stored = localStorage.getItem('gallery_custom_albums');
       if (stored) {
         const parsed = JSON.parse(stored);
-        Object.keys(parsed).forEach((id) => {
-          state.albums[id] = Object.assign(state.albums[id] || {}, parsed[id]);
+        const sanitized = sanitizeAlbumsForStorage(parsed);
+        Object.keys(sanitized).forEach((id) => {
+          state.albums[id] = Object.assign(state.albums[id] || {}, sanitized[id]);
         });
+        // Self-heal localStorage so tainted blob: URLs are eliminated permanently
+        localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Could not load custom albums from localStorage:', e);
+    }
   }
 
   // --- Animated Numeric Counter ---
@@ -1297,27 +1376,29 @@
       card.dataset.albumId = album.id;
 
       let coverHtml = '';
-      if (album.coverThumb) {
+      const isWedding = album.id.includes('wedding');
+      const luxurySvg = isWedding
+        ? `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
+        : `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5.5"></circle><circle cx="15" cy="12" r="5.5"></circle></svg>`;
+
+      if (album.coverThumb && !album.coverThumb.startsWith('blob:')) {
         coverHtml = `
           <div class="album-card-cover">
-            <img src="${album.coverThumb}" alt="${album.title} Cover" loading="lazy">
+            <img
+              src="${encodeURI(album.coverThumb)}"
+              alt="${album.title} Cover"
+              loading="lazy"
+              onerror="this.onerror=null; this.parentElement.className='album-card-cover placeholder-luxury-art ${isWedding ? 'art-wedding' : 'art-prewedding'}'; this.parentElement.innerHTML='<div class=\\'luxury-art-backdrop\\'></div><div class=\\'luxury-art-content\\'><div class=\\'luxury-art-icon-wrap\\'>${luxurySvg}</div><span class=\\'luxury-art-tag\\'>${isWedding ? 'Grand Celebrations' : 'Romantic Moments'}</span><span class=\\'luxury-art-badge\\'>✦ Ready for Photos ✦</span></div>';"
+            >
           </div>
         `;
       } else {
-        const isWedding = album.id.includes('wedding');
         coverHtml = `
           <div class="album-card-cover placeholder-luxury-art ${isWedding ? 'art-wedding' : 'art-prewedding'}">
             <div class="luxury-art-backdrop"></div>
             <div class="luxury-art-content">
               <div class="luxury-art-icon-wrap">
-                ${isWedding
-                  ? `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>`
-                  : `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="9" cy="12" r="5.5"></circle>
-                      <circle cx="15" cy="12" r="5.5"></circle>
-                    </svg>`}
+                ${luxurySvg}
               </div>
               <span class="luxury-art-tag">${isWedding ? 'Grand Celebrations' : 'Romantic Moments'}</span>
               <span class="luxury-art-badge">✦ Photos Arriving Soon ✦</span>
@@ -1602,48 +1683,77 @@
     showToast('Logged Out', 'Admin session terminated. Passcode required to enter again.', '🔒', 3500);
   }
 
-  // --- Auto-Sync Manifest to GitHub (For Mobile & Remote Edits) ---
-  async function syncManifestToGitHub(token) {
-    if (!token) return;
+  // --- GitHub API Direct File Committer (Dual branch: gh-pages & main) ---
+  async function commitFileToGitHubBranch(token, branch, repoPath, base64Content, commitMessage) {
+    if (!token) return false;
+    // Encode path segments individually so '/' remains a path separator
+    const encodedPath = repoPath.split('/').map(encodeURIComponent).join('/');
+    let sha = null;
     try {
-      const defaultAlbum = state.albums['baby-showers'] || Object.values(state.albums)[0];
-      const defaultPhotos = defaultAlbum ? (defaultAlbum.photos || []) : [];
-      const manifestCode = `// Auto-generated Multi-Folder Albums Manifest\nconst ALBUMS_DATA = ${JSON.stringify(state.albums, null, 2)};\n\nconst PHOTOS_DATA = ${JSON.stringify(defaultPhotos, null, 2)};\n`;
-      const base64Code = btoa(unescape(encodeURIComponent(manifestCode)));
-
-      let sha = null;
-      try {
-        const checkRes = await fetch('https://api.github.com/repos/srivatsamalali/Gallery/contents/photos-data.js?ref=main', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github+json',
-          },
-        });
-        if (checkRes.ok) {
-          const data = await checkRes.json();
-          sha = data.sha;
-        }
-      } catch (e) {}
-
-      const payload = {
-        message: 'feat: update gallery albums and folder manifest',
-        content: base64Code,
-        branch: 'main',
-      };
-      if (sha) payload.sha = sha;
-
-      const res = await fetch('https://api.github.com/repos/srivatsamalali/Gallery/contents/photos-data.js', {
-        method: 'PUT',
+      const checkRes = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}?ref=${branch}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github+json',
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
       });
+      if (checkRes.ok) {
+        const data = await checkRes.json();
+        sha = data.sha;
+      }
+    } catch (e) {
+      console.warn(`Could not check SHA for ${repoPath} on ${branch}:`, e);
+    }
 
-      if (res.ok) {
-        console.log('Manifest auto-synced to GitHub repository main branch!');
+    const payload = {
+      message: commitMessage,
+      content: base64Content,
+      branch: branch,
+    };
+    if (sha) payload.sha = sha;
+
+    const res = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`Failed to commit ${repoPath} to branch ${branch}:`, errText);
+      return false;
+    }
+    return true;
+  }
+
+  // --- Auto-Sync Manifest to GitHub (Dual-branch: gh-pages & main) ---
+  async function syncManifestToGitHub(token) {
+    if (!token) return;
+    try {
+      const cleanAlbums = sanitizeAlbumsForStorage(state.albums);
+      const defaultAlbum = cleanAlbums['baby-showers'] || Object.values(cleanAlbums)[0];
+      const defaultPhotos = defaultAlbum ? (defaultAlbum.photos || []) : [];
+      const manifestCode = `// Auto-generated Multi-Folder Albums Manifest\nconst ALBUMS_DATA = ${JSON.stringify(cleanAlbums, null, 2)};\n\nconst PHOTOS_DATA = ${JSON.stringify(defaultPhotos, null, 2)};\n`;
+      const base64Code = btoa(unescape(encodeURIComponent(manifestCode)));
+
+      const branches = ['gh-pages', 'main'];
+      let syncedBranches = [];
+      for (const branch of branches) {
+        const ok = await commitFileToGitHubBranch(
+          token,
+          branch,
+          'photos-data.js',
+          base64Code,
+          'feat: update gallery albums and folder manifest'
+        );
+        if (ok) syncedBranches.push(branch);
+      }
+
+      if (syncedBranches.length > 0) {
+        console.log(`Manifest auto-synced to GitHub branches: ${syncedBranches.join(', ')}`);
       }
     } catch (err) {
       console.warn('Could not auto-sync manifest to GitHub:', err);
@@ -2128,20 +2238,27 @@
     }
 
     const token = getActiveToken();
+    if (!token) {
+      showToast('Token Required', 'Please configure your GitHub Access Token in Admin panel to save files directly.', '🔒', 4000);
+      return;
+    }
+
     const folderName = album.folder || album.title;
     const stagedSnap = [...state.stagedFiles];
 
-    showToast('Direct GitHub Save', `Saving ${stagedSnap.length} photo(s) directly to your GitHub repository...`, '🚀', 6000);
+    showToast('Direct GitHub Save', `Saving ${stagedSnap.length} photo(s) directly to your GitHub repository (gh-pages & main)...`, '🚀', 6000);
 
-    // Add to local album photos immediately so they view instantly
-    state.stagedFiles.forEach((item, idx) => {
-      const url = URL.createObjectURL(item.file);
+    if (!album.photos) album.photos = [];
+
+    // Add or update staged photos in local album photos state
+    stagedSnap.forEach((item, idx) => {
+      const repoRelPath = `${folderName}/${item.name}`;
       const newPhoto = {
         filename: item.name,
         title: item.name.replace(/\.[^/.]+$/, ''),
         folder: folderName,
-        originalUrl: url,
-        thumbUrl: url,
+        originalUrl: repoRelPath,
+        thumbUrl: repoRelPath,
         sizeBytes: item.file.size,
         sizeFormatted: item.sizeFormatted,
         width: 6048,
@@ -2153,23 +2270,37 @@
         aspectRatio: 1.5,
         date: new Date().toLocaleDateString('en-US'),
         camera: 'Original DSLR',
-        id: (album.photos?.length || 0) + idx + 1,
+        id: (album.photos.length || 0) + idx + 1,
       };
-      if (!album.photos) album.photos = [];
-      album.photos.push(newPhoto);
+
+      const existingIdx = album.photos.findIndex((p) => p.filename === item.name);
+      if (existingIdx >= 0) {
+        newPhoto.id = album.photos[existingIdx].id || (existingIdx + 1);
+        album.photos[existingIdx] = newPhoto;
+      } else {
+        album.photos.push(newPhoto);
+      }
     });
 
     album.photoCount = album.photos.length;
     album.status = 'active';
-    if (!album.coverThumb && album.photos[0]) {
-      album.coverThumb = album.photos[0].thumbUrl;
+    album.totalSizeBytes = album.photos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
+    album.totalSizeFormatted = formatBytes(album.totalSizeBytes);
+    album.portraitsCount = album.photos.filter((p) => p.isPortrait).length;
+    album.landscapesCount = album.photos.length - album.portraitsCount;
+
+    if (!album.coverThumb || album.coverThumb.startsWith('blob:')) {
+      album.coverThumb = album.photos[0] ? album.photos[0].thumbUrl : '';
+    }
+    if (!album.coverOriginal || album.coverOriginal.startsWith('blob:')) {
+      album.coverOriginal = album.photos[0] ? album.photos[0].originalUrl : '';
     }
 
     saveCustomAlbums();
     renderDashboard();
     clearStaging();
 
-    // Directly commit to GitHub repository
+    // Directly commit files to GitHub repository on both gh-pages and main branches
     syncStagedFilesToGitHub(token, folderName, stagedSnap);
   }
 
@@ -2178,7 +2309,7 @@
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result;
-        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        const base64 = typeof result === 'string' && result.includes(',') ? result.split(',')[1] : result;
         resolve(base64);
       };
       reader.onerror = reject;
@@ -2187,49 +2318,31 @@
   }
 
   async function syncStagedFilesToGitHub(token, folderName, files) {
+    if (!token) return;
     let successCount = 0;
+    const branches = ['gh-pages', 'main'];
+
     for (let i = 0; i < files.length; i++) {
       const item = files[i];
       const repoPath = `${folderName}/${item.name}`;
       try {
         const base64Content = await readFileAsBase64(item.file);
-        
-        // Check for existing sha
-        let sha = null;
-        try {
-          const checkRes = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodeURIComponent(repoPath)}?ref=main`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/vnd.github+json',
-            },
-          });
-          if (checkRes.ok) {
-            const data = await checkRes.json();
-            sha = data.sha;
-          }
-        } catch (e) {}
+        let fileSuccess = false;
 
-        const payload = {
-          message: `feat(media): add ${item.name} to ${folderName}`,
-          content: base64Content,
-          branch: 'main',
-        };
-        if (sha) payload.sha = sha;
+        // Push binary file to both gh-pages (for immediate live site reflection) and main (for master repo)
+        for (const branch of branches) {
+          const ok = await commitFileToGitHubBranch(
+            token,
+            branch,
+            repoPath,
+            base64Content,
+            `feat(media): add ${item.name} to ${folderName}`
+          );
+          if (ok) fileSuccess = true;
+        }
 
-        const res = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodeURIComponent(repoPath)}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github+json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
+        if (fileSuccess) {
           successCount++;
-        } else {
-          console.error('Failed to commit file:', item.name, await res.text());
         }
       } catch (err) {
         console.error('Sync error on file:', item.name, err);
@@ -2238,7 +2351,7 @@
 
     if (successCount > 0) {
       await syncManifestToGitHub(token);
-      showToast('Saved Directly to GitHub', `Successfully saved ${successCount} photo(s) to your GitHub repository!`, '🎉', 5000);
+      showToast('Saved Directly to GitHub', `Successfully saved ${successCount} photo(s) to GitHub Pages and main branch!`, '🎉', 5000);
     } else {
       showToast('Sync Failed', 'Could not push files. Check token permissions or use python3 admin.py.', '⚠️', 5000);
     }
