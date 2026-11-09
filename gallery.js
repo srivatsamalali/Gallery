@@ -3233,6 +3233,55 @@
     });
   }
 
+  // --- Live Manifest Background Poller / Network Sync ---
+  let lastManifestSync = 0;
+  async function refreshManifestFromLiveNetwork(force = false) {
+    const now = Date.now();
+    if (!force && now - lastManifestSync < 20000) return;
+    lastManifestSync = now;
+
+    try {
+      const res = await fetch(`photos-data.js?_live=${now}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const text = await res.text();
+      const match = text.match(/const ALBUMS_DATA = (\{[\s\S]*?\});\s*const PHOTOS_DATA/);
+      if (!match) return;
+
+      const liveAlbums = JSON.parse(match[1]);
+      let changed = false;
+
+      Object.keys(liveAlbums).forEach((id) => {
+        const live = liveAlbums[id];
+        const current = state.albums[id];
+        if (!current) {
+          state.albums[id] = live;
+          changed = true;
+        } else if (
+          (live.photos?.length || 0) !== (current.photos?.length || 0) ||
+          live.title !== current.title ||
+          live.status !== current.status ||
+          live.coverThumb !== current.coverThumb ||
+          live.isPasswordProtected !== current.isPasswordProtected
+        ) {
+          state.albums[id] = Object.assign(current, live);
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        if (!state.currentAlbumId) {
+          renderDashboard();
+        } else if (state.albums[state.currentAlbumId]) {
+          const current = state.albums[state.currentAlbumId];
+          state.allPhotos = current.photos || [];
+          applyFiltersAndSort();
+        }
+      }
+    } catch (e) {
+      // Offline or network error, silently continue
+    }
+  }
+
   // --- Bootstrap App ---
   function init() {
     if (!localStorage.getItem('gh_token')) {
@@ -3244,22 +3293,28 @@
     updateAdminAuthUI();
     handleUrlHash();
 
-    // Active session monitor (every 10 seconds, and on tab visibility/focus changes)
+    // Check for fresh live manifest immediately on load
+    refreshManifestFromLiveNetwork(true);
+
+    // Active session monitor & background live sync (every 15-25 seconds)
     setInterval(() => {
       checkActiveFolderSessionExpiry();
       checkAdminSessionTimeout();
-    }, 10000);
+      refreshManifestFromLiveNetwork();
+    }, 15000);
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         checkActiveFolderSessionExpiry();
         checkAdminSessionTimeout();
+        refreshManifestFromLiveNetwork(true);
       }
     });
 
     window.addEventListener('focus', () => {
       checkActiveFolderSessionExpiry();
       checkAdminSessionTimeout();
+      refreshManifestFromLiveNetwork(true);
     });
 
     // Unregister legacy service workers and clear caches
