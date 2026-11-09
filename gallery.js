@@ -369,10 +369,10 @@
     const landscapes = total - portraits;
     const favCount = state.favorites.size;
 
-    if (el.tabCounts.all) el.tabCounts.all.textContent = total;
-    if (el.tabCounts.portrait) el.tabCounts.portrait.textContent = portraits;
-    if (el.tabCounts.landscape) el.tabCounts.landscape.textContent = landscapes;
-    if (el.tabCounts.favorites) el.tabCounts.favorites.textContent = favCount;
+    if (el.tabCounts.all) el.tabCounts.all.textContent = String(total);
+    if (el.tabCounts.portrait) el.tabCounts.portrait.textContent = String(portraits);
+    if (el.tabCounts.landscape) el.tabCounts.landscape.textContent = String(landscapes);
+    if (el.tabCounts.favorites) el.tabCounts.favorites.textContent = String(favCount);
   }
 
   // --- Gallery Rendering with Chunked Infinite Scroll ---
@@ -2497,7 +2497,7 @@
       thumb.className = `filmstrip-thumb ${i === state.currentIndex ? 'active' : ''}`;
       thumb.src = encodeURI(p.thumbUrl);
       thumb.alt = p.title;
-      thumb.dataset.index = i;
+      thumb.dataset.index = String(i);
       thumb.loading = 'lazy';
       thumb.addEventListener('click', () => {
         state.currentIndex = i;
