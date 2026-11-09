@@ -5,8 +5,14 @@
     "allowJs": true,
     "noEmit": true
   },
+  "include": [
+    "gallery.js",
+    "photos-data.js",
+    "globals.d.ts"
+  ],
   "exclude": [
     "node_modules",
+    "sw.js",
     "Baby Showers",
     "Pre Wedding Shoot",
     "Wedding Celebrations",
