@@ -5282,10 +5282,10 @@ const ALBUMS_DATA = {
       }
     ]
   },
-  "gulbarga": {
-    "id": "gulbarga",
-    "title": "Gulbarga",
-    "folder": "Gulbarga",
+  "kadur": {
+    "id": "kadur",
+    "title": "Kadur",
+    "folder": "Kadur",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "Nov 2026",
     "photoCount": 0,
