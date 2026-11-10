@@ -326,7 +326,7 @@
     if (!photo || !photo.thumbUrl) return '';
     const cleanThumb = (photo.thumbUrl || '').replace(/^\/+/, '');
     if (cleanThumb.startsWith('blob:')) return cleanThumb;
-    if (window.location.hostname.endsWith('github.io') && !cleanThumb.startsWith('thumbnails/')) {
+    if (!cleanThumb.startsWith('thumbnails/')) {
       return `${GITHUB_RAW_BASE}/${encodeURI(cleanThumb)}`;
     }
     const sep = cleanThumb.includes('?') ? '&' : '?';
@@ -1465,6 +1465,7 @@
       deletedIds.add('pre-wedding-shoot');
       deletedIds.add('pre-wedding-photoshoot');
       deletedIds.add('usha');
+      deletedIds.add('gulbarga');
 
       // Ensure core permanent albums are always preserved
       deletedIds.delete('baby-showers');
@@ -1631,15 +1632,7 @@
     }
 
     // Populate Upload Target Folder Dropdown
-    if (el.uploadTargetFolder) {
-      const currentSelected = el.uploadTargetFolder.value;
-      el.uploadTargetFolder.innerHTML = albums
-        .map((a) => `<option value="${a.id}">${a.title} (${a.folder})</option>`)
-        .join('');
-      if (currentSelected && state.albums[currentSelected]) {
-        el.uploadTargetFolder.value = currentSelected;
-      }
-    }
+    populateUploadFolderDropdown();
 
     // Populate Albums Grid
     el.albumsGrid.innerHTML = '';
@@ -2272,6 +2265,10 @@
       const uploadTabBtn = document.querySelector('.suite-tab-btn[data-tab="upload"]');
       if (uploadTabBtn) {
         uploadTabBtn.click();
+      }
+      populateUploadFolderDropdown();
+      if (el.uploadTargetFolder) {
+        el.uploadTargetFolder.value = folderSlug;
       }
 
       showToast('Folder Created & Live', `Event collection "${name}" created on GitHub! Ready to upload photos.`, '📁', 5000);
@@ -2953,6 +2950,7 @@
       document.querySelectorAll('.suite-tab-content').forEach((tc) => {
         tc.style.display = tc.id === 'tab-content-upload' ? 'block' : 'none';
       });
+      populateUploadFolderDropdown();
       if (el.uploadTargetFolder && albumId) {
         el.uploadTargetFolder.value = albumId;
       }
@@ -4225,8 +4223,8 @@
       let changed = false;
       const deletedIds = getDeletedAlbumIds();
 
-      // 1. Prune phantom duplicate pre-wedding folders
-      ['pre-wedding-shoot', 'pre-wedding-photoshoot'].forEach((phantomId) => {
+      // 1. Prune phantom duplicate pre-wedding folders and purged folders
+      ['pre-wedding-shoot', 'pre-wedding-photoshoot', 'usha', 'gulbarga'].forEach((phantomId) => {
         if (state.albums[phantomId]) {
           delete state.albums[phantomId];
           deletedIds.add(phantomId);
@@ -4257,15 +4255,6 @@
           live.isPasswordProtected !== current.isPasswordProtected
         ) {
           state.albums[id] = Object.assign(current, live);
-          changed = true;
-        }
-      });
-
-      // 3. Prune any album locally if it was deleted remotely
-      Object.keys(state.albums).forEach((currId) => {
-        if (!liveAlbums[currId] && currId !== 'baby-showers' && currId !== 'srivatsa' && currId !== 'suman') {
-          delete state.albums[currId];
-          deletedIds.add(currId);
           changed = true;
         }
       });
