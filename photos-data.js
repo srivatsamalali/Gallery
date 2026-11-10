@@ -5281,6 +5281,24 @@ const ALBUMS_DATA = {
         "id": 277
       }
     ]
+  },
+  "suman": {
+    "id": "suman",
+    "title": "Suman",
+    "folder": "Suman",
+    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
+    "date": "Nov 2026",
+    "photoCount": 0,
+    "portraitsCount": 0,
+    "landscapesCount": 0,
+    "totalSizeBytes": 0,
+    "totalSizeFormatted": "0 MB",
+    "coverThumb": "",
+    "coverOriginal": "",
+    "status": "upcoming",
+    "isPasswordProtected": true,
+    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "photos": []
   }
 };
 
