@@ -5326,11 +5326,11 @@ const ALBUMS_DATA = {
     "folder": "Suman",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "2025:11:17 10:52:16",
-    "photoCount": 31,
+    "photoCount": 32,
     "portraitsCount": 0,
-    "landscapesCount": 31,
-    "totalSizeBytes": 76498460,
-    "totalSizeFormatted": "73.0 MB",
+    "landscapesCount": 32,
+    "totalSizeBytes": 78033644,
+    "totalSizeFormatted": "74.4 MB",
     "coverThumb": "thumbnails/Suman/IMG_6737.jpg",
     "coverOriginal": "Suman/IMG_6737.jpg",
     "status": "active",
@@ -5925,6 +5925,25 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 14:27:01",
         "camera": "iPhone 15 Pro",
         "id": 31
+      },
+      {
+        "filename": "IMG_2917.jpeg",
+        "title": "IMG_2917",
+        "folder": "Suman",
+        "originalUrl": "Suman/IMG_2917.jpeg",
+        "thumbUrl": "Suman/IMG_2917.jpeg",
+        "sizeBytes": 1535184,
+        "sizeFormatted": "1.5 MB",
+        "width": 6048,
+        "height": 4032,
+        "displayWidth": 6048,
+        "displayHeight": 4032,
+        "orientation": 1,
+        "isPortrait": false,
+        "aspectRatio": 1.5,
+        "date": "11/10/2026",
+        "camera": "Original DSLR",
+        "id": 32
       }
     ]
   }
