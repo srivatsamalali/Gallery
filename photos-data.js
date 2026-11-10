@@ -5890,10 +5890,10 @@ const ALBUMS_DATA = {
       }
     ]
   },
-  "pre-wedding": {
-    "id": "pre-wedding",
-    "title": "Pre wedding",
-    "folder": "Pre wedding",
+  "srivatsa": {
+    "id": "srivatsa",
+    "title": "Srivatsa",
+    "folder": "Srivatsa",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "Nov 2026",
     "photoCount": 0,
