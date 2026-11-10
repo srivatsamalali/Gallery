@@ -122,8 +122,22 @@ def parse_photo_header(filepath, folder_name, filename, thumb_rel_path):
         'camera': camera_model or 'Nikon Z6 III'
     }
 
+def load_existing_manifest():
+    if not os.path.exists(MANIFEST_PATH):
+        return {}
+    try:
+        with open(MANIFEST_PATH, 'r', encoding='utf-8') as f:
+            content = f.read()
+        m = re.search(r'const ALBUMS_DATA = (\{[\s\S]*?\n\});', content)
+        if m:
+            return json.loads(m.group(1))
+    except Exception as e:
+        print(f"Note: Could not parse existing manifest: {e}")
+    return {}
+
 def scan_albums():
     albums = []
+    existing_manifest = load_existing_manifest()
     entries = sorted(os.listdir(BASE_DIR))
     for entry in entries:
         full_path = os.path.join(BASE_DIR, entry)
@@ -135,6 +149,7 @@ def scan_albums():
         # Check for photo files
         files = sorted([f for f in os.listdir(full_path) if f.upper().endswith(VALID_EXTENSIONS)])
         album_id = slugify(entry)
+        existing = existing_manifest.get(album_id, {})
 
         if not files:
             desc = "Portraits & romantic golden hour moments. Created by Srivatsa." if "wedding" in entry.lower() else "Upcoming photo collection preserved in uncompressed original quality. Created by Srivatsa."
@@ -152,8 +167,8 @@ def scan_albums():
                 'coverThumb': '',
                 'coverOriginal': '',
                 'status': 'upcoming',
-                'isPasswordProtected': False,
-                'passwordHash': '',
+                'isPasswordProtected': existing.get('isPasswordProtected', False),
+                'passwordHash': existing.get('passwordHash', ''),
                 'photos': []
             }
             albums.append(album_meta)
@@ -180,7 +195,15 @@ def scan_albums():
         total_mb = total_bytes / (1024 * 1024)
         total_formatted = f'{total_mb / 1024:.2f} GB' if total_mb >= 1024 else f'{total_mb:.1f} MB'
 
-        cover_photo = photos[0] if photos else None
+        cover_photo = None
+        if existing.get('coverThumb') or existing.get('coverOriginal'):
+            for p in photos:
+                if (existing.get('coverThumb') and p['thumbUrl'] == existing['coverThumb']) or \
+                   (existing.get('coverOriginal') and p['originalUrl'] == existing['coverOriginal']):
+                    cover_photo = p
+                    break
+        if not cover_photo and photos:
+            cover_photo = photos[0]
 
         album_meta = {
             'id': album_id,
@@ -196,8 +219,8 @@ def scan_albums():
             'coverThumb': cover_photo['thumbUrl'] if cover_photo else '',
             'coverOriginal': cover_photo['originalUrl'] if cover_photo else '',
             'status': 'active',
-            'isPasswordProtected': False,
-            'passwordHash': '',
+            'isPasswordProtected': existing.get('isPasswordProtected', False),
+            'passwordHash': existing.get('passwordHash', ''),
             'photos': photos
         }
         albums.append(album_meta)

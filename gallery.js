@@ -179,6 +179,7 @@
     lbPrev: document.getElementById('lb-prev'),
     lbNext: document.getElementById('lb-next'),
     lbZoomBtn: document.getElementById('lb-zoom-btn'),
+    lbAdminCoverBtn: document.getElementById('lb-admin-cover-btn'),
     lbFavBtn: document.getElementById('lb-fav-btn'),
     lbAudioBtn: document.getElementById('lb-audio-btn'),
     lbShareBtn: document.getElementById('lb-share-btn'),
@@ -548,8 +549,17 @@
     const isFav = state.favorites.has(photo.filename);
     const aspect = photo.displayWidth && photo.displayHeight ? (photo.displayWidth / photo.displayHeight).toFixed(3) : 1.5;
 
+    const currentAlbum = state.albums[state.currentAlbumId];
+    const isCover = !!currentAlbum && (
+      (currentAlbum.coverThumb && currentAlbum.coverThumb.includes(photo.filename)) ||
+      (currentAlbum.coverOriginal && currentAlbum.coverOriginal.includes(photo.filename)) ||
+      currentAlbum.coverThumb === photo.thumbUrl ||
+      currentAlbum.coverOriginal === photo.originalUrl
+    );
+
     card.innerHTML = `
       <div class="photo-img-wrap" style="aspect-ratio: ${aspect};">
+        ${isCover ? '<div class="card-cover-indicator" title="Current Album Cover Photo">★ Cover</div>' : ''}
         <div class="card-badges">
           <span class="badge-tag badge-size">💾 ${photo.sizeFormatted}</span>
           <span class="badge-tag badge-res">📐 ${photo.isPortrait ? 'Portrait • 24 MP' : 'Landscape • 24 MP'}</span>
@@ -587,6 +597,11 @@
               </svg>
             </button>
             ${isAdminVerified() ? `
+            <button class="overlay-btn btn-admin-card-cover ${isCover ? 'active' : ''}" title="${isCover ? 'Current Album Cover Photo' : 'Admin: Set as Album Cover Photo'}" onclick="event.stopPropagation(); window.galleryAdmin.setCover('${photo.filename}');">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="${isCover ? '#c99e32' : 'none'}" stroke="${isCover ? '#c99e32' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
             <button class="overlay-btn btn-admin-card-delete" title="Admin: Delete Photo from Collection" onclick="event.stopPropagation(); window.galleryAdmin.deletePhoto('${photo.filename}');">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -1106,6 +1121,9 @@
     const favSvg = el.lbFavBtn.querySelector('svg');
     if (favSvg) favSvg.setAttribute('fill', isFav ? '#e53e3e' : 'none');
 
+    // Admin Cover button state
+    updateLightboxCoverButton();
+
     // Update EXIF modal if currently open
     if (el.lbExifModal && el.lbExifModal.classList.contains('visible')) {
       populateExifModal(photo);
@@ -1113,6 +1131,36 @@
 
     // Update filmstrip highlight
     highlightFilmstripActive();
+  }
+
+  function updateLightboxCoverButton() {
+    if (!el.lbAdminCoverBtn) return;
+    if (!isAdminVerified()) {
+      el.lbAdminCoverBtn.style.display = 'none';
+      return;
+    }
+    const photo = state.filteredPhotos[state.currentIndex];
+    if (!photo) {
+      el.lbAdminCoverBtn.style.display = 'none';
+      return;
+    }
+    el.lbAdminCoverBtn.style.display = 'inline-flex';
+    const albumId = state.currentAlbumId || photo.folder?.toLowerCase().replace(/[\W_]+/g, '-') || 'suman';
+    const album = state.albums[albumId];
+    const isCover = album && (
+      (album.coverThumb && album.coverThumb.includes(photo.filename)) ||
+      (album.coverOriginal && album.coverOriginal.includes(photo.filename)) ||
+      album.coverThumb === photo.thumbUrl ||
+      album.coverOriginal === photo.originalUrl
+    );
+
+    el.lbAdminCoverBtn.classList.toggle('active', !!isCover);
+    el.lbAdminCoverBtn.title = isCover ? 'Current Album Cover Photo' : 'Admin: Set as Album Cover Photo';
+    const svg = el.lbAdminCoverBtn.querySelector('svg');
+    if (svg) {
+      svg.setAttribute('fill', isCover ? '#c99e32' : 'none');
+      svg.setAttribute('stroke', isCover ? '#c99e32' : 'currentColor');
+    }
   }
 
   // --- Detailed Nikon Z6 III EXIF Inspector ---
@@ -1281,12 +1329,15 @@
         };
       });
 
-      let coverThumb = a.coverThumb || '';
+      const coverPhotoExists = cleanPhotos.some(
+        (p) => (a.coverThumb && a.coverThumb.includes(p.filename)) || (a.coverOriginal && a.coverOriginal.includes(p.filename))
+      );
+      let coverThumb = (coverPhotoExists && a.coverThumb) ? a.coverThumb : '';
       if (!coverThumb || coverThumb.startsWith('blob:')) {
         coverThumb = cleanPhotos[0] ? cleanPhotos[0].thumbUrl : '';
       }
 
-      let coverOriginal = a.coverOriginal || '';
+      let coverOriginal = (coverPhotoExists && a.coverOriginal) ? a.coverOriginal : '';
       if (!coverOriginal || coverOriginal.startsWith('blob:')) {
         coverOriginal = cleanPhotos[0] ? cleanPhotos[0].originalUrl : '';
       }
@@ -1890,6 +1941,12 @@
         ? 'Manage Folders & Uploads (Admin Session Active - 10m)'
         : 'Manage Folders, Passwords, and Uploads';
     }
+    if (state.currentAlbumId) {
+      applyFiltersAndSort();
+    }
+    if (state.lightboxOpen) {
+      updateLightboxCoverButton();
+    }
   }
 
   function handleAdminLogout() {
@@ -2072,11 +2129,26 @@
     const albums = Object.values(state.albums);
     albums.forEach((album) => {
       const isProtected = !!album.isPasswordProtected && !!album.passwordHash;
+      const coverThumbUrl = album.coverThumb ? (album.coverThumb.includes('?') ? album.coverThumb : `${album.coverThumb}?${THUMB_VERSION}`) : '';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Folder / Title">
-          <strong style="color:var(--text-primary); font-size:0.95rem;">${album.title}</strong>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">📁 <code>${album.folder}</code></div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            ${coverThumbUrl ? `
+              <img
+                src="${encodeURI(coverThumbUrl)}"
+                alt="Cover"
+                style="width: 38px; height: 38px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(201,158,50,0.4); flex-shrink: 0;"
+                onerror="this.style.display='none'"
+              />
+            ` : `
+              <div style="width: 38px; height: 38px; border-radius: 6px; background: rgba(201,158,50,0.1); border: 1px dashed rgba(201,158,50,0.4); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">📁</div>
+            `}
+            <div>
+              <strong style="color:var(--text-primary); font-size:0.95rem;">${album.title}</strong>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">📁 <code>${album.folder}</code></div>
+            </div>
+          </div>
         </td>
         <td data-label="Photos"><span style="font-weight:600;">${album.photoCount || 0}</span> photos</td>
         <td data-label="Protection">
@@ -2086,7 +2158,7 @@
         </td>
         <td data-label="Actions">
           <div class="folder-actions-cell">
-            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.managePhotos('${album.id}')">🖼️ Photos (${album.photoCount || 0})</button>
+            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.managePhotos('${album.id}')">🖼️ Photos & Cover (${album.photoCount || 0})</button>
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.rename('${album.id}')">✏️ Rename</button>
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.password('${album.id}')">${isProtected ? '🔑 Change Pwd' : '🔑 Set Pwd'}</button>
             <button type="button" class="btn-table-action danger" onclick="window.galleryAdmin.delete('${album.id}')">🗑️ Delete</button>
@@ -2495,8 +2567,13 @@
 
     photos.forEach((photo) => {
       const isSelected = state.manageSelectedPhotos.has(photo.filename);
+      const isCover = (album.coverThumb && album.coverThumb.includes(photo.filename)) ||
+                      (album.coverOriginal && album.coverOriginal.includes(photo.filename)) ||
+                      album.coverThumb === photo.thumbUrl ||
+                      album.coverOriginal === photo.originalUrl;
+
       const card = document.createElement('div');
-      card.className = `modal-photo-card ${isSelected ? 'selected' : ''}`;
+      card.className = `modal-photo-card ${isSelected ? 'selected' : ''} ${isCover ? 'is-cover' : ''}`;
       card.id = `modal-photo-card-${encodeURIComponent(photo.filename)}`;
 
       card.innerHTML = `
@@ -2506,6 +2583,7 @@
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </div>
+          ${isCover ? '<div class="modal-cover-badge">★ Cover</div>' : ''}
           <img
             class="modal-photo-thumb"
             src="${getThumbUrl(photo)}"
@@ -2521,9 +2599,20 @@
             <span>💾 ${photo.sizeFormatted || 'Master'}</span>
             <span>${photo.width ? `${photo.width}×${photo.height}` : ''}</span>
           </div>
-          <button type="button" class="btn-photo-delete" data-filename="${photo.filename}" title="Permanently delete this photo">
-            🗑️ Delete
-          </button>
+          <div class="modal-photo-actions">
+            ${isCover ? `
+              <button type="button" class="btn-photo-cover active" title="Current album cover photo" disabled>
+                ★ Cover
+              </button>
+            ` : `
+              <button type="button" class="btn-photo-cover" data-filename="${photo.filename}" title="Set as album cover photo">
+                ⭐ Set Cover
+              </button>
+            `}
+            <button type="button" class="btn-photo-delete" data-filename="${photo.filename}" title="Permanently delete this photo">
+              🗑️ Delete
+            </button>
+          </div>
         </div>
       `;
 
@@ -2533,6 +2622,15 @@
         e.stopPropagation();
         toggleManagePhotoSelection(photo.filename, card);
       });
+
+      // Cover button click handler
+      const coverBtn = card.querySelector('.btn-photo-cover:not([disabled])');
+      if (coverBtn) {
+        coverBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setAlbumCoverPhoto(albumId, photo.filename);
+        });
+      }
 
       // Delete button click handler
       const delBtn = card.querySelector('.btn-photo-delete');
@@ -2703,6 +2801,50 @@
     }
   }
 
+  async function setAlbumCoverPhoto(albumId, filename) {
+    if (!checkAdminAccess()) return;
+    const album = state.albums[albumId];
+    if (!album) {
+      showToast('Album Not Found', 'Could not locate the target collection.', '⚠️', 3500);
+      return;
+    }
+
+    const photo = (album.photos || []).find((p) => p.filename === filename);
+    if (!photo) {
+      showToast('Photo Not Found', `Photo "${filename}" not found in "${album.title}".`, '⚠️', 3500);
+      return;
+    }
+
+    // Set cover thumb and original URL
+    album.coverThumb = photo.thumbUrl;
+    album.coverOriginal = photo.originalUrl;
+
+    // Persist changes to local storage & trigger GitHub auto-sync
+    saveCustomAlbums();
+
+    // Re-render UI components
+    renderModalPhotosGrid();
+    renderAdminFolderTable();
+    renderDashboard();
+
+    // If currently viewing this album in the main gallery, re-render so badges and covers update
+    if (state.currentAlbumId === albumId) {
+      applyFiltersAndSort();
+    }
+
+    // If lightbox is open, update lightbox button state
+    if (state.lightboxOpen) {
+      updateLightboxCoverButton();
+    }
+
+    showToast(
+      'Cover Photo Updated',
+      `"${photo.title || photo.filename}" is now the cover photo for "${album.title}".`,
+      '⭐',
+      4000
+    );
+  }
+
   function switchToManagePhotosTab(albumId) {
     if (!checkAdminAccess()) return;
     populateManageFolderDropdown(albumId);
@@ -2722,8 +2864,12 @@
     rename: promptRenameFolder,
     delete: promptDeleteFolder,
     managePhotos: switchToManagePhotosTab,
+    setCover: (filename) => {
+      const albumId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : Object.keys(state.albums)[0]);
+      setAlbumCoverPhoto(albumId, filename);
+    },
     deletePhoto: (filename) => {
-      const albumId = state.currentAlbumId || 'suman';
+      const albumId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : Object.keys(state.albums)[0]);
       promptDeleteSinglePhoto(albumId, filename);
     },
   };
@@ -3724,6 +3870,15 @@
     if (el.lbExifClose) {
       el.lbExifClose.addEventListener('click', () => {
         if (el.lbExifModal) el.lbExifModal.classList.remove('visible');
+      });
+    }
+
+    if (el.lbAdminCoverBtn) {
+      el.lbAdminCoverBtn.addEventListener('click', () => {
+        const photo = state.filteredPhotos[state.currentIndex];
+        if (!photo) return;
+        const albumId = state.currentAlbumId || (photo.folder ? photo.folder.toLowerCase().replace(/[\W_]+/g, '-') : 'suman');
+        setAlbumCoverPhoto(albumId, photo.filename);
       });
     }
 

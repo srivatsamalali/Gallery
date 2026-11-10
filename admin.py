@@ -381,6 +381,69 @@ def update_password_folder_name(old_name: str, new_name: str):
             json.dump(pwds, f, indent=2)
 
 
+def select_cover_photo():
+    """Allow Srivatsa to select any photo as the cover photo for an event folder."""
+    folders = list_existing_folders()
+    if not folders:
+        print("No event folders found.")
+        return
+
+    print("\n⭐ --- SELECT ALBUM COVER PHOTO ---")
+    for idx, (fname, pcount) in enumerate(folders, 1):
+        print(f"  [{idx}] {fname} ({pcount} photos)")
+
+    choice = input("\nSelect folder #: ").strip()
+    try:
+        sel = int(choice) - 1
+        folder_name, _ = folders[sel]
+    except (ValueError, IndexError):
+        print("Invalid folder selection.")
+        return
+
+    folder_dir = os.path.join(WORKSPACE_ROOT, folder_name)
+    photos = [f for f in sorted(os.listdir(folder_dir)) if Path(f).suffix.upper() in IMAGE_EXTENSIONS]
+    if not photos:
+        print(f"No photos found in '{folder_name}'.")
+        return
+
+    print(f"\nPhotos in '{folder_name}':")
+    for idx, p in enumerate(photos, 1):
+        print(f"  [{idx}] {p}")
+
+    p_choice = input("\nSelect photo # to set as cover: ").strip()
+    try:
+        p_sel = int(p_choice) - 1
+        selected_photo = photos[p_sel]
+    except (ValueError, IndexError):
+        print("Invalid photo selection.")
+        return
+
+    album_id = folder_name.lower().replace(' ', '-')
+    thumb_path = f"thumbnails/{folder_name}/{selected_photo}" if folder_name != 'Baby Showers' else f"thumbnails/{selected_photo}"
+    orig_path = f"{folder_name}/{selected_photo}"
+
+    if os.path.exists(DATA_JS):
+        with open(DATA_JS, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        import re
+        m = re.search(r'const ALBUMS_DATA = (\{[\s\S]*?\n\});', content)
+        if m:
+            try:
+                albums = json.loads(m.group(1))
+                if album_id in albums:
+                    albums[album_id]['coverThumb'] = thumb_path
+                    albums[album_id]['coverOriginal'] = orig_path
+                    new_manifest = f"// Auto-generated Multi-Folder Albums Manifest\nconst ALBUMS_DATA = {json.dumps(albums, indent=2)};\n\nconst PHOTOS_DATA = {json.dumps(albums.get('baby-showers', {}).get('photos', []), indent=2)};\n"
+                    with open(DATA_JS, 'w', encoding='utf-8') as fw:
+                        fw.write(new_manifest)
+                    print(f"\n✨ Cover photo updated to '{selected_photo}' for '{folder_name}' in photos-data.js!")
+            except Exception as e:
+                print(f"Warning: Could not update photos-data.js directly: {e}")
+
+    run_generate_manifest()
+
+
 def sync_git():
     """Commit and push to main and gh-pages."""
     print("\n🚀 --- GIT REPOSITORY SYNC (MAIN & GH-PAGES) ---")
@@ -432,13 +495,14 @@ def main_menu():
         print("  [3] ✏️  Rename Event Folder")
         print("  [4] 🗑️  Delete Event Folder")
         print("  [5] 📦 Import Photos or Extract .ZIP Archive into Folder")
-        print("  [6] 🔄 Regenerate Manifest & Thumbnails")
-        print("  [7] 🚀 Commit & Push to GitHub (main & gh-pages)")
-        print("  [8] 🌐 Run Local Web Server (http://localhost:8080)")
+        print("  [6] ⭐ Select Cover Photo for Event Folder")
+        print("  [7] 🔄 Regenerate Manifest & Thumbnails")
+        print("  [8] 🚀 Commit & Push to GitHub (main & gh-pages)")
+        print("  [9] 🌐 Run Local Web Server (http://localhost:8080)")
         print("  [0] 🚪 Exit")
         print("-" * 65)
 
-        choice = input("Select an option [0-8]: ").strip()
+        choice = input("Select an option [0-9]: ").strip()
 
         if choice == '1':
             create_folder()
@@ -451,16 +515,18 @@ def main_menu():
         elif choice == '5':
             import_photos_or_zip()
         elif choice == '6':
-            run_generate_manifest()
+            select_cover_photo()
         elif choice == '7':
-            sync_git()
+            run_generate_manifest()
         elif choice == '8':
+            sync_git()
+        elif choice == '9':
             launch_server()
         elif choice == '0':
             print("\nGoodbye Srivatsa! 👋\n")
             break
         else:
-            print("Invalid option. Please choose [0-8].")
+            print("Invalid option. Please choose [0-9].")
 
         print("\n")
 

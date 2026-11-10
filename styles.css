@@ -4382,22 +4382,63 @@ body::before {
   justify-content: space-between;
 }
 
-.btn-photo-delete {
+.modal-photo-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
   margin-top: 4px;
+}
+
+.btn-photo-cover {
   width: 100%;
-  padding: 7px 10px;
-  background: rgba(229, 62, 62, 0.08);
-  border: 1px solid rgba(229, 62, 62, 0.35);
+  padding: 7px 6px;
+  background: rgba(201, 158, 50, 0.1);
+  border: 1px solid rgba(201, 158, 50, 0.45);
   border-radius: var(--radius-sm);
-  color: #c53030;
-  font-size: 0.76rem;
+  color: #a87b18;
+  font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-photo-cover:hover:not([disabled]) {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-photo-cover.active,
+.btn-photo-cover[disabled] {
+  background: linear-gradient(135deg, #c99e32, #dfb74a);
+  border-color: #c99e32;
+  color: #ffffff;
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(201, 158, 50, 0.35);
+}
+
+.btn-photo-delete {
+  width: 100%;
+  padding: 7px 6px;
+  background: rgba(229, 62, 62, 0.08);
+  border: 1px solid rgba(229, 62, 62, 0.35);
+  border-radius: var(--radius-sm);
+  color: #c53030;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .btn-photo-delete:hover {
@@ -4405,6 +4446,79 @@ body::before {
   border-color: #c53030;
   color: #ffffff;
   transform: translateY(-1px);
+}
+
+.modal-cover-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #c99e32, #dfb74a);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.modal-photo-card.is-cover {
+  border-color: rgba(201, 158, 50, 0.6);
+  box-shadow: 0 0 0 1px rgba(201, 158, 50, 0.4);
+}
+
+/* Main gallery card cover button & badge */
+.overlay-btn.btn-admin-card-cover {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(201, 158, 50, 0.6);
+  color: #e5b948;
+}
+
+.overlay-btn.btn-admin-card-cover:hover {
+  background: rgba(201, 158, 50, 0.9);
+  color: #fff;
+  border-color: #c99e32;
+  transform: scale(1.08);
+}
+
+.overlay-btn.btn-admin-card-cover.active {
+  background: #c99e32;
+  border-color: #c99e32;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(201, 158, 50, 0.6);
+}
+
+.card-cover-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(18, 18, 18, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(201, 158, 50, 0.7);
+  color: #f1c964;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  letter-spacing: 0.3px;
+}
+
+.lightbox-icon-btn#lb-admin-cover-btn.active {
+  color: #f1c964;
+  border-color: rgba(201, 158, 50, 0.7);
+  background: rgba(201, 158, 50, 0.2);
 }
 
 .modal-photos-empty {
