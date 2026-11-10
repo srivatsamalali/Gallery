@@ -5296,8 +5296,8 @@ const ALBUMS_DATA = {
     "coverThumb": "thumbnails/Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
     "coverOriginal": "Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
     "status": "active",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": [
       {
         "filename": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
@@ -5325,17 +5325,17 @@ const ALBUMS_DATA = {
     "title": "Suman",
     "folder": "Suman",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
-    "date": "2026:08:29 13:47:21",
+    "date": "2025:11:17 10:52:16",
     "photoCount": 31,
     "portraitsCount": 0,
     "landscapesCount": 31,
     "totalSizeBytes": 76498460,
     "totalSizeFormatted": "73.0 MB",
-    "coverThumb": "thumbnails/Suman/IMG_6291.jpg",
-    "coverOriginal": "Suman/IMG_6291.jpg",
+    "coverThumb": "thumbnails/Suman/IMG_3015.jpeg",
+    "coverOriginal": "Suman/IMG_3015.jpeg",
     "status": "active",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": [
       {
         "filename": "IMG_3015.jpeg",
@@ -5927,24 +5927,6 @@ const ALBUMS_DATA = {
         "id": 31
       }
     ]
-  },
-  "gulbarga": {
-    "id": "gulbarga",
-    "title": "Gulbarga",
-    "folder": "Gulbarga",
-    "description": "Upcoming photo collection preserved in uncompressed original quality. Created by Srivatsa.",
-    "date": "Upcoming 2026",
-    "photoCount": 0,
-    "portraitsCount": 0,
-    "landscapesCount": 0,
-    "totalSizeBytes": 0,
-    "totalSizeFormatted": "0 MB",
-    "coverThumb": "",
-    "coverOriginal": "",
-    "status": "upcoming",
-    "isPasswordProtected": false,
-    "passwordHash": "",
-    "photos": []
   }
 };
 
