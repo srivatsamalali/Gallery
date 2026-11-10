@@ -17,17 +17,20 @@ Capabilities:
 import os
 import sys
 import json
+import re
 import shutil
 import hashlib
 import zipfile
 import subprocess
-import urllib.parse
+import urllib
+from urllib.parse import quote
 from pathlib import Path
 
 WORKSPACE_ROOT = os.path.dirname(os.path.abspath(__file__))
 THUMBS_ROOT = os.path.join(WORKSPACE_ROOT, 'thumbnails')
 MANIFEST_PY = os.path.join(WORKSPACE_ROOT, 'generate_manifest.py')
 DATA_JS = os.path.join(WORKSPACE_ROOT, 'photos-data.js')
+PASSWORDS_FILE = os.path.join(WORKSPACE_ROOT, '.folder_passwords.json')
 
 OWNER_EMAIL = 'srivatsa.a.malali@gmail.com'
 MASTER_PASSCODE = 'SrivatsaAdmin2026'
@@ -53,7 +56,7 @@ def verify_admin_identity():
     if email.lower() != OWNER_EMAIL.lower():
         print("\n❌ ACCESS DENIED: Administrative operations are strictly restricted.")
         print(f"   Only '{OWNER_EMAIL}' has permission to create/manage folders or passwords.")
-        alert_body = urllib.parse.quote(
+        alert_body = quote(
             f"Unauthorized user '{email}' attempted to execute admin operations on your Gallery at {WORKSPACE_ROOT}."
         )
         mailto_url = f"mailto:{OWNER_EMAIL}?subject=Security%20Alert%3A%20Unauthorized%20Admin%20Attempt&body={alert_body}"
@@ -345,14 +348,12 @@ def apply_passwords_to_manifest():
 
 
 # --- Password Storage Helpers ---
-PASSWORDS_FILE = os.path.join(WORKSPACE_ROOT, '.folder_passwords.json')
-
 def load_passwords():
     if os.path.exists(PASSWORDS_FILE):
         try:
             with open(PASSWORDS_FILE, 'r') as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
     return {}
 
@@ -426,7 +427,6 @@ def select_cover_photo():
         with open(DATA_JS, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        import re
         m = re.search(r'const ALBUMS_DATA = (\{[\s\S]*?\n\});', content)
         if m:
             try:
@@ -460,7 +460,11 @@ def sync_git():
         print("Updating gh-pages branch...")
         current_branch = subprocess.check_output(["git", "branch", "--show-current"]).decode().strip()
         subprocess.run(["git", "checkout", "gh-pages"], check=True)
-        subprocess.run(["git", "merge", "main", "-m", f"merge: {msg}"], check=True)
+        subprocess.run(
+            ["git", "checkout", "main", "--", "index.html", "gallery.js", "styles.css", "photos-data.js", "admin.py", "generate_manifest.py", "thumbnails/"],
+            check=True
+        )
+        subprocess.run(["git", "commit", "-m", f"deploy: {msg}"], check=False)
         subprocess.run(["git", "push", "origin", "gh-pages"], check=True)
         subprocess.run(["git", "checkout", current_branch], check=True)
 

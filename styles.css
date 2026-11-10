@@ -4515,7 +4515,7 @@ body::before {
   letter-spacing: 0.3px;
 }
 
-.lightbox-icon-btn#lb-admin-cover-btn.active {
+#lb-admin-cover-btn.active {
   color: #f1c964;
   border-color: rgba(201, 158, 50, 0.7);
   background: rgba(201, 158, 50, 0.2);
