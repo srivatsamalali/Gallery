@@ -1445,16 +1445,14 @@
       // One-time auto-purge for phantom pre-wedding duplicates
       deletedIds.add('pre-wedding-shoot');
       deletedIds.add('pre-wedding-photoshoot');
-      // Ensure Srivatsa folder is never blocked by stale tombstones
+      // Ensure real albums are never blocked by stale tombstones
       deletedIds.delete('srivatsa');
+      deletedIds.delete('usha');
 
-      // Un-tombstone any album that actively exists in authoritative ALBUMS_DATA with photos
+      // Un-tombstone any album that actively exists in authoritative ALBUMS_DATA
       if (typeof ALBUMS_DATA !== 'undefined') {
         Object.keys(ALBUMS_DATA).forEach((authId) => {
-          const auth = ALBUMS_DATA[authId];
-          if (auth && ((auth.photos && auth.photos.length > 0) || auth.photoCount > 0)) {
-            deletedIds.delete(authId);
-          }
+          deletedIds.delete(authId);
         });
       }
 
@@ -1605,7 +1603,7 @@
     const totalBytes = activeAlbums.reduce((sum, a) => sum + (a.totalSizeBytes || 0), 0);
     const totalGB = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
 
-    if (el.dashAlbumCount) animateCounter(el.dashAlbumCount, activeAlbums.length, 1000);
+    if (el.dashAlbumCount) animateCounter(el.dashAlbumCount, albums.length, 1000);
     if (el.dashPhotoCount) animateCounter(el.dashPhotoCount, totalPhotos, 1200);
     if (el.dashStorageCount) animateCounter(el.dashStorageCount, parseFloat(totalGB) || 4.61, 1400, ' GB', 2);
 
@@ -2218,10 +2216,19 @@
     const token = getActiveToken();
     if (token) {
       syncManifestToGitHub(token).catch(console.warn);
+      const gitkeepContent = btoa(`# ${name} Photo Archive - Created by Srivatsa\n`);
+      commitFileToGitHubBranch(token, 'main', `${name}/.gitkeep`, gitkeepContent, `feat(folder): establish ${name} collection folder`).catch(console.warn);
     }
     el.newFolderName.value = '';
     el.newFolderPwd.value = '';
-    showToast('Folder Created', `Event folder "${name}" created successfully${isProtected ? ' with password protection' : ''}! Target folder set for upload.`, '📁', 4000);
+
+    // Switch smoothly to the Upload tab with the newly created folder selected
+    const uploadTabBtn = document.querySelector('.suite-tab-btn[data-tab="upload"]');
+    if (uploadTabBtn) {
+      uploadTabBtn.click();
+    }
+
+    showToast('Folder Created', `Event folder "${name}" created successfully! Destination folder selected for direct upload.`, '📁', 4500);
   }
 
   // --- Creative Luxury Action Popup Engine (Replaces ugly browser prompt/confirm) ---
@@ -4154,17 +4161,7 @@
       // 2. Synchronize additions & updates from remote
       Object.keys(liveAlbums).forEach((id) => {
         const live = liveAlbums[id];
-        // If an album exists remotely with active photos, remove any stale local tombstone
-        if (live && ((live.photos && live.photos.length > 0) || live.photoCount > 0)) {
-          deletedIds.delete(id);
-        }
-        if (deletedIds.has(id)) {
-          if (state.albums[id]) {
-            delete state.albums[id];
-            changed = true;
-          }
-          return;
-        }
+        deletedIds.delete(id);
         const current = state.albums[id];
         if (!current) {
           state.albums[id] = live;
