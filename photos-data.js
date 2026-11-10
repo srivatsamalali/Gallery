@@ -5282,12 +5282,12 @@ const ALBUMS_DATA = {
       }
     ]
   },
-  "pre-wedding-shoot": {
-    "id": "pre-wedding-shoot",
-    "title": "Pre Wedding Shoot",
-    "folder": "Pre Wedding Shoot",
-    "description": "Portraits & romantic golden hour moments. Created by Srivatsa.",
-    "date": "Upcoming 2026",
+  "gulbarga": {
+    "id": "gulbarga",
+    "title": "Gulbarga",
+    "folder": "Gulbarga",
+    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
+    "date": "Nov 2026",
     "photoCount": 0,
     "portraitsCount": 0,
     "landscapesCount": 0,
@@ -5296,26 +5296,8 @@ const ALBUMS_DATA = {
     "coverThumb": "",
     "coverOriginal": "",
     "status": "upcoming",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
-    "photos": []
-  },
-  "pre-wedding-photoshoot": {
-    "id": "pre-wedding-photoshoot",
-    "title": "Pre Wedding Shoot",
-    "folder": "Pre Wedding Shoot",
-    "description": "Portraits & romantic golden hour moments. Created by Srivatsa.",
-    "date": "Upcoming 2026",
-    "photoCount": 0,
-    "portraitsCount": 0,
-    "landscapesCount": 0,
-    "totalSizeBytes": 0,
-    "totalSizeFormatted": "0 MB",
-    "coverThumb": "",
-    "coverOriginal": "",
-    "status": "upcoming",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": []
   }
 };

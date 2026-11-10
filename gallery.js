@@ -1286,6 +1286,33 @@
     return clean;
   }
 
+  // --- Permanent Deletion Registry (Tombstones) ---
+  function getDeletedAlbumIds() {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('gallery_deleted_albums') || '[]'));
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function recordDeletedAlbum(albumId) {
+    try {
+      const deleted = getDeletedAlbumIds();
+      deleted.add(albumId);
+      if (albumId === 'pre-wedding-shoot') deleted.add('pre-wedding-photoshoot');
+      if (albumId === 'pre-wedding-photoshoot') deleted.add('pre-wedding-shoot');
+      localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deleted]));
+    } catch (e) {}
+  }
+
+  function unrecordDeletedAlbum(albumId) {
+    try {
+      const deleted = getDeletedAlbumIds();
+      deleted.delete(albumId);
+      localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deleted]));
+    } catch (e) {}
+  }
+
   // --- Storage Helper for Custom Folders & Passwords ---
   function saveCustomAlbums() {
     try {
@@ -1304,11 +1331,27 @@
 
   function loadCustomAlbums() {
     try {
+      const deletedIds = getDeletedAlbumIds();
+
+      // One-time auto-purge for phantom pre-wedding duplicates
+      deletedIds.add('pre-wedding-shoot');
+      deletedIds.add('pre-wedding-photoshoot');
+      localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deletedIds]));
+
+      // Purge any deleted albums immediately from state
+      deletedIds.forEach((delId) => {
+        delete state.albums[delId];
+      });
+
       const stored = localStorage.getItem('gallery_custom_albums');
       if (stored) {
         const parsed = JSON.parse(stored);
         const sanitized = sanitizeAlbumsForStorage(parsed);
         Object.keys(sanitized).forEach((id) => {
+          if (deletedIds.has(id)) {
+            delete state.albums[id];
+            return;
+          }
           // Authoritative manifest in photos-data.js supersedes stale local storage
           if (typeof ALBUMS_DATA !== 'undefined' && ALBUMS_DATA[id] && Array.isArray(ALBUMS_DATA[id].photos)) {
             sanitized[id].photos = ALBUMS_DATA[id].photos;
@@ -1325,9 +1368,15 @@
           }
           state.albums[id] = Object.assign(state.albums[id] || {}, sanitized[id]);
         });
-        // Self-heal localStorage so tainted blob: URLs and phantom entries are eliminated permanently
-        localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
       }
+
+      // Ensure deleted albums stay purged
+      deletedIds.forEach((delId) => {
+        delete state.albums[delId];
+      });
+
+      // Self-heal localStorage so deleted entries are eliminated permanently
+      localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
     } catch (e) {
       console.warn('Could not load custom albums from localStorage:', e);
     }
@@ -1913,6 +1962,7 @@
     if (!name) return;
 
     const folderSlug = name.toLowerCase().replace(/[\W_]+/g, '-').replace(/^-+|-+$/g, '');
+    unrecordDeletedAlbum(folderSlug);
     let pwdHash = '';
     let isProtected = false;
     if (pwd) {
@@ -2209,6 +2259,11 @@
     const album = state.albums[albumId];
     if (!album) return;
 
+    if (albumId === 'baby-showers') {
+      showToast('Protected Album', 'The master Baby Showers archive cannot be deleted.', '⚠️', 3500);
+      return;
+    }
+
     const confirmed = await showCreativeConfirm({
       icon: '🗑️',
       iconClass: 'danger-icon-wrap',
@@ -2222,12 +2277,16 @@
 
     if (!confirmed) return;
 
+    recordDeletedAlbum(albumId);
     delete state.albums[albumId];
+    if (albumId === 'pre-wedding-shoot') delete state.albums['pre-wedding-photoshoot'];
+    if (albumId === 'pre-wedding-photoshoot') delete state.albums['pre-wedding-shoot'];
+
     saveCustomAlbums();
     renderDashboard();
     renderAdminFolderTable();
     populateUploadFolderDropdown();
-    showToast('Folder Deleted', `Removed "${album.title}".`, '🗑️', 3000);
+    showToast('Folder Deleted', `Permanently removed "${album.title}".`, '🗑️', 3000);
   }
 
   // Expose admin actions globally for table buttons and header action
@@ -3445,8 +3504,17 @@
 
       const liveAlbums = JSON.parse(match[1]);
       let changed = false;
+      const deletedIds = getDeletedAlbumIds();
 
       Object.keys(liveAlbums).forEach((id) => {
+        if (deletedIds.has(id)) {
+          // Never resurrect deleted albums
+          if (state.albums[id]) {
+            delete state.albums[id];
+            changed = true;
+          }
+          return;
+        }
         const live = liveAlbums[id];
         const current = state.albums[id];
         if (!current) {
@@ -3480,6 +3548,7 @@
 
   // --- Bootstrap App ---
   function init() {
+    loadCustomAlbums();
     if (!localStorage.getItem('gh_token')) {
       try { localStorage.setItem('gh_token', VAULT_GH_TOKEN); } catch(e) {}
     }
