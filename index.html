@@ -570,6 +570,7 @@
       <div class="suite-tabs">
         <button class="suite-tab-btn active" data-tab="folders">📁 Folders & Passwords</button>
         <button class="suite-tab-btn" data-tab="upload">📤 Upload Photos & ZIP (Direct to GitHub)</button>
+        <button class="suite-tab-btn" data-tab="photos">🖼️ Delete & Manage Photos</button>
       </div>
 
       <!-- Tab 1: Folders & Passwords -->
@@ -634,6 +635,49 @@
             </div>
             <div id="staging-file-list" class="staging-file-list"></div>
             <button type="button" id="btn-commit-upload" class="modal-btn primary full-width">🚀 Upload & Save Directly to GitHub</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Delete & Manage Photos -->
+      <div class="suite-tab-content" id="tab-content-photos" style="display: none;">
+        <div class="suite-section-box">
+          <div class="photos-manage-toolbar">
+            <div class="form-group flex-1">
+              <label class="form-label">Select Album to View & Delete Photos:</label>
+              <select id="manage-target-folder" class="form-input">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="photos-manage-search-wrap">
+              <label class="form-label">Search / Filter Photos:</label>
+              <input type="text" id="manage-photo-search" class="form-input" placeholder="Search by photo # or filename..." />
+            </div>
+          </div>
+
+          <div class="photos-manage-actions-bar">
+            <div class="photos-manage-stats" id="manage-photos-stats">
+              <!-- e.g. "Showing 19 photos (48.6 MB)" -->
+            </div>
+            <div class="photos-manage-buttons">
+              <button type="button" id="btn-manage-select-all" class="modal-btn outline-gold sm">Select All</button>
+              <button type="button" id="btn-manage-deselect-all" class="modal-btn secondary sm" style="display: none;">Deselect All</button>
+              <button type="button" id="btn-manage-delete-selected" class="modal-btn danger sm" style="display: none;">
+                🗑️ Delete Selected (<span id="manage-selected-count">0</span>)
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Photos Grid -->
+          <div class="modal-photos-grid-wrap">
+            <div class="modal-photos-grid" id="modal-photos-grid">
+              <!-- Photos loaded here -->
+            </div>
+            <div id="modal-photos-empty" class="modal-photos-empty" style="display: none;">
+              <div class="empty-icon">📷</div>
+              <h4>No Photos in this Album</h4>
+              <p>Upload photos using the Upload tab above or drag and drop photos.</p>
+            </div>
           </div>
         </div>
       </div>
