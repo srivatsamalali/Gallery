@@ -312,7 +312,7 @@
 
   // --- URL Resolver for Original Files ---
   const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/srivatsamalali/Gallery/main';
-  const THUMB_VERSION = 'v=20261110_1250';
+  const THUMB_VERSION = 'v=20261110_1815';
 
   function getOriginalUrl(photo) {
     if (!photo) return '';
