@@ -2503,17 +2503,14 @@
         const base64Content = await readFileAsBase64(item.file);
         let fileSuccess = false;
 
-        // Push binary file to both gh-pages (for immediate live site reflection) and main (for master repo)
-        for (const branch of branches) {
-          const ok = await commitFileToGitHubBranch(
-            token,
-            branch,
-            repoPath,
-            base64Content,
-            `feat(media): add ${item.name} to ${folderName}`
-          );
-          if (ok) fileSuccess = true;
-        }
+        // Push master photo directly to main branch (keeps gh-pages ultra-fast & under 30s deploy)
+        const fileSuccess = await commitFileToGitHubBranch(
+          token,
+          'main',
+          repoPath,
+          base64Content,
+          `feat(media): add ${item.name} to ${folderName}`
+        );
 
         if (fileSuccess) {
           successfullyUploadedPhotos.push(item);
