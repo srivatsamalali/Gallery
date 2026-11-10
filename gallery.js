@@ -326,7 +326,7 @@
     if (!photo || !photo.thumbUrl) return '';
     const cleanThumb = (photo.thumbUrl || '').replace(/^\/+/, '');
     if (cleanThumb.startsWith('blob:')) return cleanThumb;
-    if (window.location.hostname.endsWith('github.io') && !cleanThumb.startsWith('thumbnails/')) {
+    if (!cleanThumb.startsWith('thumbnails/')) {
       return `${GITHUB_RAW_BASE}/${encodeURI(cleanThumb)}`;
     }
     const sep = cleanThumb.includes('?') ? '&' : '?';
@@ -1461,19 +1461,16 @@
     try {
       const deletedIds = getDeletedAlbumIds();
 
-      // One-time auto-purge for phantom pre-wedding duplicates
+      // One-time auto-purge for phantom pre-wedding duplicates and removed folders
       deletedIds.add('pre-wedding-shoot');
       deletedIds.add('pre-wedding-photoshoot');
-      // Ensure real albums are never blocked by stale tombstones
-      deletedIds.delete('srivatsa');
-      deletedIds.delete('usha');
+      deletedIds.add('usha');
+      deletedIds.add('gulbarga');
 
-      // Un-tombstone any album that actively exists in authoritative ALBUMS_DATA
-      if (typeof ALBUMS_DATA !== 'undefined') {
-        Object.keys(ALBUMS_DATA).forEach((authId) => {
-          deletedIds.delete(authId);
-        });
-      }
+      // Ensure core permanent albums are always preserved
+      deletedIds.delete('baby-showers');
+      deletedIds.delete('srivatsa');
+      deletedIds.delete('suman');
 
       localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deletedIds]));
 
@@ -1635,15 +1632,7 @@
     }
 
     // Populate Upload Target Folder Dropdown
-    if (el.uploadTargetFolder) {
-      const currentSelected = el.uploadTargetFolder.value;
-      el.uploadTargetFolder.innerHTML = albums
-        .map((a) => `<option value="${a.id}">${a.title} (${a.folder})</option>`)
-        .join('');
-      if (currentSelected && state.albums[currentSelected]) {
-        el.uploadTargetFolder.value = currentSelected;
-      }
-    }
+    populateUploadFolderDropdown();
 
     // Populate Albums Grid
     el.albumsGrid.innerHTML = '';
@@ -1789,20 +1778,11 @@
   }
 
   function isAdminVerified() {
-    if (localStorage.getItem('admin_verified') === 'true') return true;
-    if (localStorage.getItem('gh_token')) return true;
+    const isLocal = localStorage.getItem('admin_verified') === 'true';
+    const isSession = sessionStorage.getItem('admin_verified') === 'true';
     const tStr = sessionStorage.getItem('admin_verified_time');
-    if (!tStr) {
-      sessionStorage.removeItem('admin_verified');
-      return false;
-    }
-    const t = parseInt(tStr, 10);
-    if (isNaN(t) || (Date.now() - t) > FOLDER_SESSION_TIMEOUT_MS) {
-      sessionStorage.removeItem('admin_verified_time');
-      sessionStorage.removeItem('admin_verified');
-      return false;
-    }
-    return true;
+    if (isLocal || isSession) return true;
+    return false;
   }
 
   function setAdminVerified() {
@@ -1814,7 +1794,9 @@
   function clearAdminVerified() {
     sessionStorage.removeItem('admin_verified_time');
     sessionStorage.removeItem('admin_verified');
-    try { localStorage.removeItem('admin_verified'); } catch (e) {}
+    try {
+      localStorage.removeItem('admin_verified');
+    } catch (e) {}
   }
 
   function checkActiveFolderSessionExpiry() {
@@ -2284,6 +2266,10 @@
       if (uploadTabBtn) {
         uploadTabBtn.click();
       }
+      populateUploadFolderDropdown();
+      if (el.uploadTargetFolder) {
+        el.uploadTargetFolder.value = folderSlug;
+      }
 
       showToast('Folder Created & Live', `Event collection "${name}" created on GitHub! Ready to upload photos.`, '📁', 5000);
     } catch (err) {
@@ -2557,8 +2543,8 @@
     const album = state.albums[albumId];
     if (!album) return;
 
-    if (albumId === 'baby-showers') {
-      showToast('Protected Album', 'The master Baby Showers archive cannot be deleted.', '⚠️', 3500);
+    if (albumId === 'baby-showers' || albumId === 'srivatsa' || albumId === 'suman') {
+      showToast('Core Album Protected', `The ${album.title} archive is a core collection and cannot be deleted.`, '⚠️', 3500);
       return;
     }
 
@@ -2584,7 +2570,14 @@
     renderDashboard();
     renderAdminFolderTable();
     populateUploadFolderDropdown();
-    showToast('Folder Deleted', `Permanently removed "${album.title}".`, '🗑️', 3000);
+
+    const token = getActiveToken();
+    if (token) {
+      const folderName = album.folder || album.title;
+      deleteFileFromGitHubBranch(token, 'main', `${folderName}/.gitkeep`, `feat(folder): remove ${folderName} collection`).catch(console.warn);
+      syncManifestToGitHub(token).catch(console.warn);
+    }
+    showToast('Folder Deleted', `Permanently removed "${album.title}".`, '🗑️', 3500);
   }
 
   // --- Photo Management & Deletion Engine (Suite Modal & Gallery) ---
@@ -2957,6 +2950,7 @@
       document.querySelectorAll('.suite-tab-content').forEach((tc) => {
         tc.style.display = tc.id === 'tab-content-upload' ? 'block' : 'none';
       });
+      populateUploadFolderDropdown();
       if (el.uploadTargetFolder && albumId) {
         el.uploadTargetFolder.value = albumId;
       }
@@ -4229,8 +4223,8 @@
       let changed = false;
       const deletedIds = getDeletedAlbumIds();
 
-      // 1. Prune phantom duplicate pre-wedding folders
-      ['pre-wedding-shoot', 'pre-wedding-photoshoot'].forEach((phantomId) => {
+      // 1. Prune phantom duplicate pre-wedding folders and purged folders
+      ['pre-wedding-shoot', 'pre-wedding-photoshoot', 'usha', 'gulbarga'].forEach((phantomId) => {
         if (state.albums[phantomId]) {
           delete state.albums[phantomId];
           deletedIds.add(phantomId);
@@ -4240,8 +4234,15 @@
 
       // 2. Synchronize additions & updates from remote
       Object.keys(liveAlbums).forEach((id) => {
+        if (deletedIds.has(id)) {
+          if (state.albums[id]) {
+            delete state.albums[id];
+            changed = true;
+          }
+          return;
+        }
+
         const live = liveAlbums[id];
-        deletedIds.delete(id);
         const current = state.albums[id];
         if (!current) {
           state.albums[id] = live;
