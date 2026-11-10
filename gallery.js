@@ -475,7 +475,7 @@
           alt="${photo.title}"
           loading="lazy"
           decoding="async"
-          onerror="if(this.src !== '${encodeURI(photo.originalUrl)}') this.src='${encodeURI(photo.originalUrl)}';"
+          onerror="if(this.src !== '${encodeURI(photo.originalUrl)}'){ this.src='${encodeURI(photo.originalUrl)}'; } else { this.style.display='none'; if(!this.parentElement.querySelector('.img-missing-fallback')){ const fb=document.createElement('div'); fb.className='img-missing-fallback'; fb.innerHTML='<div style=\'text-align:center;padding:2.5rem 1rem;color:#b2955d;\'><div style=\'font-size:2.2rem;margin-bottom:0.5rem;\'>📷</div><div style=\'font-weight:600;font-size:0.95rem;color:#8a704c;\'>Photo File Pending Upload</div><div style=\'font-size:0.8rem;opacity:0.8;margin-top:0.3rem;color:#6b583e;\'>Please upload via Manage Folders & Uploads</div></div>'; this.parentElement.appendChild(fb); } }"
         />
 
         <div class="card-overlay">
@@ -2415,7 +2415,12 @@
     state.searchQuery = '';
     state.sortBy = 'default';
     if (el.searchInput) el.searchInput.value = '';
-    if (el.sortSelect) el.sortSelect.value = 'default';
+    if (el.sortSelect) {
+      el.sortSelect.value = 'default';
+      if (el.sortSelect.options[0]) {
+        el.sortSelect.options[0].textContent = `Timeline (All Photos • ${album.photoCount || 0})`;
+      }
+    }
     el.filterTabs.forEach((tab) => {
       tab.classList.toggle('active', tab.dataset.filter === 'all');
     });
