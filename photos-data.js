@@ -5296,8 +5296,8 @@ const ALBUMS_DATA = {
     "coverThumb": "thumbnails/Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
     "coverOriginal": "Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
     "status": "active",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": [
       {
         "filename": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
@@ -5334,8 +5334,8 @@ const ALBUMS_DATA = {
     "coverThumb": "thumbnails/Suman/IMG_6737.jpg",
     "coverOriginal": "Suman/IMG_6737.jpg",
     "status": "active",
-    "isPasswordProtected": false,
-    "passwordHash": "",
+    "isPasswordProtected": true,
+    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
     "photos": [
       {
         "filename": "IMG_3015.jpeg",
