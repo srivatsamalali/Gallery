@@ -5890,10 +5890,10 @@ const ALBUMS_DATA = {
       }
     ]
   },
-  "srivatsa": {
-    "id": "srivatsa",
-    "title": "Srivatsa",
-    "folder": "Srivatsa",
+  "pre-wedding": {
+    "id": "pre-wedding",
+    "title": "Pre wedding",
+    "folder": "Pre wedding",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "Nov 2026",
     "photoCount": 0,
@@ -5904,8 +5904,8 @@ const ALBUMS_DATA = {
     "coverThumb": "",
     "coverOriginal": "",
     "status": "upcoming",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "isPasswordProtected": false,
+    "passwordHash": "",
     "photos": []
   }
 };
