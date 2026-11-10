@@ -1375,6 +1375,17 @@
         delete state.albums[delId];
       });
 
+      // Synchronize deletions with authoritative ALBUMS_DATA
+      if (typeof ALBUMS_DATA !== 'undefined') {
+        Object.keys(state.albums).forEach((id) => {
+          if (id !== 'baby-showers' && !ALBUMS_DATA[id]) {
+            delete state.albums[id];
+            deletedIds.add(id);
+          }
+        });
+        localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deletedIds]));
+      }
+
       // Self-heal localStorage so deleted entries are eliminated permanently
       localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
     } catch (e) {
@@ -3480,23 +3491,23 @@
   let lastManifestSync = 0;
   async function refreshManifestFromLiveNetwork(force = false) {
     const now = Date.now();
-    if (!force && now - lastManifestSync < 15000) return;
+    if (!force && now - lastManifestSync < 10000) return;
     lastManifestSync = now;
 
     try {
       let text = '';
-      // Try raw.githubusercontent.com first for immediate (0-second) synchronization upon upload
-      try {
-        const rawRes = await fetch(`${GITHUB_RAW_BASE}/photos-data.js?_live=${now}`, { cache: 'no-store' });
-        if (rawRes.ok) text = await rawRes.text();
-      } catch (rawErr) {
-        // Fall back to local path if network restricts raw.githubusercontent
+      // Fetch fresh live manifest directly from GitHub Pages CDN
+      const res = await fetch(`photos-data.js?_live=${now}`, { cache: 'no-store' });
+      if (res.ok) {
+        text = await res.text();
+      } else {
+        // Fall back to raw.githubusercontent if local fetch fails
+        try {
+          const rawRes = await fetch(`${GITHUB_RAW_BASE}/photos-data.js?_live=${now}`, { cache: 'no-store' });
+          if (rawRes.ok) text = await rawRes.text();
+        } catch (rawErr) {}
       }
 
-      if (!text) {
-        const res = await fetch(`photos-data.js?_live=${now}`, { cache: 'no-store' });
-        if (res.ok) text = await res.text();
-      }
       if (!text) return;
 
       const match = text.match(/const ALBUMS_DATA = (\{[\s\S]*?\});\s*const PHOTOS_DATA/);
@@ -3506,9 +3517,18 @@
       let changed = false;
       const deletedIds = getDeletedAlbumIds();
 
+      // 1. Prune any album deleted remotely on another device
+      Object.keys(state.albums).forEach((currentId) => {
+        if (currentId !== 'baby-showers' && !liveAlbums[currentId]) {
+          delete state.albums[currentId];
+          deletedIds.add(currentId);
+          changed = true;
+        }
+      });
+
+      // 2. Synchronize additions & updates from remote
       Object.keys(liveAlbums).forEach((id) => {
         if (deletedIds.has(id)) {
-          // Never resurrect deleted albums
           if (state.albums[id]) {
             delete state.albums[id];
             changed = true;
@@ -3533,9 +3553,16 @@
       });
 
       if (changed) {
-        if (!state.currentAlbumId) {
+        localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deletedIds]));
+        localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
+        renderDashboard();
+        renderAdminFolderTable();
+        populateUploadFolderDropdown();
+        if (state.currentAlbumId && !state.albums[state.currentAlbumId]) {
+          state.currentAlbumId = null;
           renderDashboard();
-        } else if (state.albums[state.currentAlbumId]) {
+          history.replaceState(null, '', window.location.pathname);
+        } else if (state.currentAlbumId && state.albums[state.currentAlbumId]) {
           const current = state.albums[state.currentAlbumId];
           state.allPhotos = current.photos || [];
           applyFiltersAndSort();
