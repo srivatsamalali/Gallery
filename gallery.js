@@ -1336,6 +1336,17 @@
       // One-time auto-purge for phantom pre-wedding duplicates
       deletedIds.add('pre-wedding-shoot');
       deletedIds.add('pre-wedding-photoshoot');
+
+      // Un-tombstone any album that actively exists in authoritative ALBUMS_DATA with photos
+      if (typeof ALBUMS_DATA !== 'undefined') {
+        Object.keys(ALBUMS_DATA).forEach((authId) => {
+          const auth = ALBUMS_DATA[authId];
+          if (auth && ((auth.photos && auth.photos.length > 0) || auth.photoCount > 0)) {
+            deletedIds.delete(authId);
+          }
+        });
+      }
+
       localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deletedIds]));
 
       // Purge any deleted albums immediately from state
@@ -2504,7 +2515,7 @@
         let fileSuccess = false;
 
         // Push master photo directly to main branch (keeps gh-pages ultra-fast & under 30s deploy)
-        const fileSuccess = await commitFileToGitHubBranch(
+        fileSuccess = await commitFileToGitHubBranch(
           token,
           'main',
           repoPath,
@@ -3544,6 +3555,11 @@
 
       // 2. Synchronize additions & updates from remote
       Object.keys(liveAlbums).forEach((id) => {
+        const live = liveAlbums[id];
+        // If an album exists remotely with active photos, remove any stale local tombstone
+        if (live && ((live.photos && live.photos.length > 0) || live.photoCount > 0)) {
+          deletedIds.delete(id);
+        }
         if (deletedIds.has(id)) {
           if (state.albums[id]) {
             delete state.albums[id];
@@ -3551,7 +3567,6 @@
           }
           return;
         }
-        const live = liveAlbums[id];
         const current = state.albums[id];
         if (!current) {
           state.albums[id] = live;
