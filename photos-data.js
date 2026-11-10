@@ -5930,8 +5930,8 @@ const ALBUMS_DATA = {
   },
   "usha": {
     "id": "usha",
-    "title": "Usha",
-    "folder": "Usha",
+    "title": "usha",
+    "folder": "usha",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "Nov 2026",
     "photoCount": 0,
