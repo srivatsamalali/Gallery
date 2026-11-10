@@ -325,6 +325,10 @@
   function getThumbUrl(photo) {
     if (!photo || !photo.thumbUrl) return '';
     const cleanThumb = (photo.thumbUrl || '').replace(/^\/+/, '');
+    if (cleanThumb.startsWith('blob:')) return cleanThumb;
+    if (window.location.hostname.endsWith('github.io') && !cleanThumb.startsWith('thumbnails/')) {
+      return `${GITHUB_RAW_BASE}/${encodeURI(cleanThumb)}`;
+    }
     const sep = cleanThumb.includes('?') ? '&' : '?';
     return `${cleanThumb}${sep}${THUMB_VERSION}`;
   }
@@ -1441,6 +1445,8 @@
       // One-time auto-purge for phantom pre-wedding duplicates
       deletedIds.add('pre-wedding-shoot');
       deletedIds.add('pre-wedding-photoshoot');
+      // Ensure Srivatsa folder is never blocked by stale tombstones
+      deletedIds.delete('srivatsa');
 
       // Un-tombstone any album that actively exists in authoritative ALBUMS_DATA with photos
       if (typeof ALBUMS_DATA !== 'undefined') {
@@ -1495,17 +1501,6 @@
       deletedIds.forEach((delId) => {
         delete state.albums[delId];
       });
-
-      // Synchronize deletions with authoritative ALBUMS_DATA
-      if (typeof ALBUMS_DATA !== 'undefined') {
-        Object.keys(state.albums).forEach((id) => {
-          if (id !== 'baby-showers' && !ALBUMS_DATA[id]) {
-            delete state.albums[id];
-            deletedIds.add(id);
-          }
-        });
-        localStorage.setItem('gallery_deleted_albums', JSON.stringify([...deletedIds]));
-      }
 
       // Self-heal localStorage so deleted entries are eliminated permanently
       localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
@@ -1624,9 +1619,13 @@
 
     // Populate Upload Target Folder Dropdown
     if (el.uploadTargetFolder) {
+      const currentSelected = el.uploadTargetFolder.value;
       el.uploadTargetFolder.innerHTML = albums
         .map((a) => `<option value="${a.id}">${a.title} (${a.folder})</option>`)
         .join('');
+      if (currentSelected && state.albums[currentSelected]) {
+        el.uploadTargetFolder.value = currentSelected;
+      }
     }
 
     // Populate Albums Grid
@@ -2113,6 +2112,7 @@
 
   function populateUploadFolderDropdown() {
     if (!el.uploadTargetFolder) return;
+    const currentVal = el.uploadTargetFolder.value;
     el.uploadTargetFolder.innerHTML = '';
     Object.values(state.albums).forEach((album) => {
       const opt = document.createElement('option');
@@ -2120,6 +2120,9 @@
       opt.textContent = `${album.title} (${album.photoCount || 0} photos)`;
       el.uploadTargetFolder.appendChild(opt);
     });
+    if (currentVal && state.albums[currentVal]) {
+      el.uploadTargetFolder.value = currentVal;
+    }
   }
 
   function renderAdminFolderTable() {
@@ -2209,9 +2212,16 @@
     renderDashboard();
     renderAdminFolderTable();
     populateUploadFolderDropdown();
+    if (el.uploadTargetFolder) {
+      el.uploadTargetFolder.value = folderSlug;
+    }
+    const token = getActiveToken();
+    if (token) {
+      syncManifestToGitHub(token).catch(console.warn);
+    }
     el.newFolderName.value = '';
     el.newFolderPwd.value = '';
-    showToast('Folder Created', `Event folder "${name}" created successfully${isProtected ? ' with password protection' : ''}!`, '📁', 4000);
+    showToast('Folder Created', `Event folder "${name}" created successfully${isProtected ? ' with password protection' : ''}! Target folder set for upload.`, '📁', 4000);
   }
 
   // --- Creative Luxury Action Popup Engine (Replaces ugly browser prompt/confirm) ---
@@ -4132,11 +4142,11 @@
       let changed = false;
       const deletedIds = getDeletedAlbumIds();
 
-      // 1. Prune any album deleted remotely on another device
-      Object.keys(state.albums).forEach((currentId) => {
-        if (currentId !== 'baby-showers' && !liveAlbums[currentId]) {
-          delete state.albums[currentId];
-          deletedIds.add(currentId);
+      // 1. Prune phantom duplicate pre-wedding folders
+      ['pre-wedding-shoot', 'pre-wedding-photoshoot'].forEach((phantomId) => {
+        if (state.albums[phantomId]) {
+          delete state.albums[phantomId];
+          deletedIds.add(phantomId);
           changed = true;
         }
       });
