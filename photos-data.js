@@ -5282,44 +5282,6 @@ const ALBUMS_DATA = {
       }
     ]
   },
-  "srivatsa": {
-    "id": "srivatsa",
-    "title": "Srivatsa",
-    "folder": "Srivatsa",
-    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
-    "date": "Nov 2026",
-    "photoCount": 1,
-    "portraitsCount": 0,
-    "landscapesCount": 1,
-    "totalSizeBytes": 3781110,
-    "totalSizeFormatted": "3.6 MB",
-    "coverThumb": "thumbnails/Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
-    "coverOriginal": "Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
-    "status": "active",
-    "isPasswordProtected": false,
-    "passwordHash": "",
-    "photos": [
-      {
-        "filename": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
-        "title": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F",
-        "folder": "Srivatsa",
-        "originalUrl": "Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
-        "thumbUrl": "thumbnails/Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
-        "sizeBytes": 3781110,
-        "sizeFormatted": "3.6 MB",
-        "width": 6048,
-        "height": 4032,
-        "displayWidth": 6048,
-        "displayHeight": 4032,
-        "orientation": 1,
-        "isPortrait": false,
-        "aspectRatio": 1.5,
-        "date": "Nov 2026",
-        "camera": "Nikon Z6 III",
-        "id": 1
-      }
-    ]
-  },
   "suman": {
     "id": "suman",
     "title": "Suman",
@@ -5925,6 +5887,44 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 14:27:01",
         "camera": "iPhone 15 Pro",
         "id": 31
+      }
+    ]
+  },
+  "srivatsa": {
+    "id": "srivatsa",
+    "title": "Srivatsa",
+    "folder": "Srivatsa",
+    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
+    "date": "Nov 2026",
+    "photoCount": 1,
+    "portraitsCount": 0,
+    "landscapesCount": 1,
+    "totalSizeBytes": 3781110,
+    "totalSizeFormatted": "3.6 MB",
+    "coverThumb": "thumbnails/Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+    "coverOriginal": "Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+    "status": "active",
+    "isPasswordProtected": true,
+    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "photos": [
+      {
+        "filename": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+        "title": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F",
+        "folder": "Srivatsa",
+        "originalUrl": "Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+        "thumbUrl": "thumbnails/Srivatsa/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+        "sizeBytes": 3781110,
+        "sizeFormatted": "3.6 MB",
+        "width": 6048,
+        "height": 4032,
+        "displayWidth": 6048,
+        "displayHeight": 4032,
+        "orientation": 1,
+        "isPortrait": false,
+        "aspectRatio": 1.5,
+        "date": "Nov 2026",
+        "camera": "Nikon Z6 III",
+        "id": 1
       }
     ]
   }
