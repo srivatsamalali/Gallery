@@ -5927,6 +5927,24 @@ const ALBUMS_DATA = {
         "id": 1
       }
     ]
+  },
+  "usha": {
+    "id": "usha",
+    "title": "Usha",
+    "folder": "Usha",
+    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
+    "date": "Nov 2026",
+    "photoCount": 0,
+    "portraitsCount": 0,
+    "landscapesCount": 0,
+    "totalSizeBytes": 0,
+    "totalSizeFormatted": "0 MB",
+    "coverThumb": "",
+    "coverOriginal": "",
+    "status": "upcoming",
+    "isPasswordProtected": false,
+    "passwordHash": "",
+    "photos": []
   }
 };
 
