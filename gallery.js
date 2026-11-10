@@ -113,6 +113,20 @@
     ghTokenInput: document.getElementById('gh-token-input'),
     btnSaveGhToken: document.getElementById('btn-save-gh-token'),
 
+    // Upload Progress Modal Elements
+    uploadProgressModal: document.getElementById('upload-progress-modal'),
+    uploadSpinner: document.getElementById('upload-spinner'),
+    uploadIconComplete: document.getElementById('upload-icon-complete'),
+    uploadModalTitle: document.getElementById('upload-modal-title'),
+    uploadModalDesc: document.getElementById('upload-modal-desc'),
+    uploadProgressBar: document.getElementById('upload-progress-bar'),
+    uploadStatusText: document.getElementById('upload-status-text'),
+    uploadNoteText: document.getElementById('upload-note-text'),
+    uploadCompleteActions: document.getElementById('upload-complete-actions'),
+    uploadErrorActions: document.getElementById('upload-error-actions'),
+    btnUploadDone: document.getElementById('btn-upload-done'),
+    btnUploadCloseErr: document.getElementById('btn-upload-close-err'),
+
     // Gallery Elements
     galleryContainer: document.getElementById('gallery-container'),
     scrollSentinel: document.getElementById('scroll-sentinel'),
@@ -2228,6 +2242,63 @@
     if (el.fileInputUpload) el.fileInputUpload.value = '';
   }
 
+  // --- Upload Progress Modal Controllers ---
+  function showUploadProgressModal(options) {
+    if (!el.uploadProgressModal) return;
+    el.uploadProgressModal.style.display = 'flex';
+    if (el.uploadSpinner) el.uploadSpinner.style.display = 'block';
+    if (el.uploadIconComplete) el.uploadIconComplete.style.display = 'none';
+    if (el.uploadCompleteActions) el.uploadCompleteActions.style.display = 'none';
+    if (el.uploadErrorActions) el.uploadErrorActions.style.display = 'none';
+    if (el.uploadModalTitle) el.uploadModalTitle.textContent = options.title || 'Saving to GitHub...';
+    if (el.uploadModalDesc) el.uploadModalDesc.textContent = options.desc || 'Preparing files...';
+    if (el.uploadProgressBar) el.uploadProgressBar.style.width = `${options.progress || 5}%`;
+    if (el.uploadStatusText) el.uploadStatusText.textContent = options.status || 'Starting upload...';
+  }
+
+  function updateUploadProgressModal(options) {
+    if (el.uploadModalTitle && options.title) el.uploadModalTitle.textContent = options.title;
+    if (el.uploadModalDesc && options.desc) el.uploadModalDesc.textContent = options.desc;
+    if (el.uploadProgressBar && typeof options.progress === 'number') el.uploadProgressBar.style.width = `${options.progress}%`;
+    if (el.uploadStatusText && options.status) el.uploadStatusText.textContent = options.status;
+  }
+
+  function setUploadModalComplete(options) {
+    if (el.uploadSpinner) el.uploadSpinner.style.display = 'none';
+    if (el.uploadIconComplete) {
+      el.uploadIconComplete.style.display = 'block';
+      el.uploadIconComplete.textContent = '🎉';
+    }
+    if (el.uploadModalTitle) el.uploadModalTitle.textContent = options.title || 'Upload Complete!';
+    if (el.uploadModalDesc) el.uploadModalDesc.textContent = options.desc || 'Your photos are now saved and live.';
+    if (el.uploadProgressBar) el.uploadProgressBar.style.width = '100%';
+    if (el.uploadStatusText) el.uploadStatusText.textContent = '100% Complete & Synchronized';
+    if (el.uploadCompleteActions) el.uploadCompleteActions.style.display = 'block';
+    if (el.btnUploadDone) {
+      el.btnUploadDone.onclick = () => {
+        if (el.uploadProgressModal) el.uploadProgressModal.style.display = 'none';
+        if (options.albumId) openAlbum(options.albumId);
+      };
+    }
+  }
+
+  function setUploadModalError(options) {
+    if (el.uploadSpinner) el.uploadSpinner.style.display = 'none';
+    if (el.uploadIconComplete) {
+      el.uploadIconComplete.style.display = 'block';
+      el.uploadIconComplete.textContent = '⚠️';
+    }
+    if (el.uploadModalTitle) el.uploadModalTitle.textContent = options.title || 'Upload Incomplete';
+    if (el.uploadModalDesc) el.uploadModalDesc.textContent = options.desc || 'GitHub could not save the files.';
+    if (el.uploadStatusText) el.uploadStatusText.textContent = 'Upload halted to protect your gallery.';
+    if (el.uploadErrorActions) el.uploadErrorActions.style.display = 'block';
+    if (el.btnUploadCloseErr) {
+      el.btnUploadCloseErr.onclick = () => {
+        if (el.uploadProgressModal) el.uploadProgressModal.style.display = 'none';
+      };
+    }
+  }
+
   async function commitUpload() {
     if (state.stagedFiles.length === 0) return;
     const targetAlbumId = el.uploadTargetFolder ? el.uploadTargetFolder.value : null;
@@ -2246,85 +2317,31 @@
     const folderName = album.folder || album.title;
     const stagedSnap = [...state.stagedFiles];
 
-    showToast('Direct GitHub Save', `Saving ${stagedSnap.length} photo(s) directly to your GitHub repository (gh-pages & main)...`, '🚀', 6000);
+    // Close admin suite modal & show real-time progress modal
+    if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'none';
 
-    if (!album.photos) album.photos = [];
-
-    // Add or update staged photos in local album photos state
-    stagedSnap.forEach((item, idx) => {
-      const repoRelPath = `${folderName}/${item.name}`;
-      const newPhoto = {
-        filename: item.name,
-        title: item.name.replace(/\.[^/.]+$/, ''),
-        folder: folderName,
-        originalUrl: repoRelPath,
-        thumbUrl: repoRelPath,
-        sizeBytes: item.file.size,
-        sizeFormatted: item.sizeFormatted,
-        width: 6048,
-        height: 4032,
-        displayWidth: 6048,
-        displayHeight: 4032,
-        orientation: 1,
-        isPortrait: false,
-        aspectRatio: 1.5,
-        date: new Date().toLocaleDateString('en-US'),
-        camera: 'Original DSLR',
-        id: (album.photos.length || 0) + idx + 1,
-      };
-
-      const existingIdx = album.photos.findIndex((p) => p.filename === item.name);
-      if (existingIdx >= 0) {
-        newPhoto.id = album.photos[existingIdx].id || (existingIdx + 1);
-        album.photos[existingIdx] = newPhoto;
-      } else {
-        album.photos.push(newPhoto);
-      }
+    showUploadProgressModal({
+      title: `Uploading to "${album.title}"`,
+      desc: `Preparing ${stagedSnap.length} photo(s) for direct GitHub upload...`,
+      progress: 8,
+      status: 'Encoding binary data...'
     });
 
-    album.photoCount = album.photos.length;
-    album.status = 'active';
-    album.totalSizeBytes = album.photos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
-    album.totalSizeFormatted = formatBytes(album.totalSizeBytes);
-    album.portraitsCount = album.photos.filter((p) => p.isPortrait).length;
-    album.landscapesCount = album.photos.length - album.portraitsCount;
-
-    if (!album.coverThumb || album.coverThumb.startsWith('blob:')) {
-      album.coverThumb = album.photos[0] ? album.photos[0].thumbUrl : '';
-    }
-    if (!album.coverOriginal || album.coverOriginal.startsWith('blob:')) {
-      album.coverOriginal = album.photos[0] ? album.photos[0].originalUrl : '';
-    }
-
-    saveCustomAlbums();
-    renderDashboard();
-    clearStaging();
-
-    // Directly commit files to GitHub repository on both gh-pages and main branches
-    syncStagedFilesToGitHub(token, folderName, stagedSnap);
-  }
-
-  function readFileAsBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result;
-        const base64 = typeof result === 'string' && result.includes(',') ? result.split(',')[1] : result;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function syncStagedFilesToGitHub(token, folderName, files) {
-    if (!token) return;
-    let successCount = 0;
     const branches = ['gh-pages', 'main'];
+    const successfullyUploadedPhotos = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const item = files[i];
+    for (let i = 0; i < stagedSnap.length; i++) {
+      const item = stagedSnap[i];
       const repoPath = `${folderName}/${item.name}`;
+      const percent = Math.round((i / stagedSnap.length) * 80) + 10;
+
+      updateUploadProgressModal({
+        title: `Uploading photo ${i + 1} of ${stagedSnap.length}`,
+        desc: `Transmitting ${item.name} (${item.sizeFormatted}) directly to GitHub...`,
+        progress: percent,
+        status: `Saving ${item.name}...`
+      });
+
       try {
         const base64Content = await readFileAsBase64(item.file);
         let fileSuccess = false;
@@ -2342,19 +2359,101 @@
         }
 
         if (fileSuccess) {
-          successCount++;
+          successfullyUploadedPhotos.push(item);
+        } else {
+          console.error(`Upload rejected by GitHub API for ${item.name}`);
         }
       } catch (err) {
         console.error('Sync error on file:', item.name, err);
       }
     }
 
-    if (successCount > 0) {
-      await syncManifestToGitHub(token);
-      showToast('Saved Directly to GitHub', `Successfully saved ${successCount} photo(s) to GitHub Pages and main branch!`, '🎉', 5000);
+    if (successfullyUploadedPhotos.length > 0) {
+      updateUploadProgressModal({
+        title: 'Updating Gallery Registry',
+        desc: 'Writing manifest and publishing to GitHub Pages CDN...',
+        progress: 94,
+        status: 'Synchronizing manifest...'
+      });
+
+      if (!album.photos) album.photos = [];
+
+      // Add ONLY successfully uploaded photos to album
+      successfullyUploadedPhotos.forEach((item, idx) => {
+        const repoRelPath = `${folderName}/${item.name}`;
+        const newPhoto = {
+          filename: item.name,
+          title: item.name.replace(/\.[^/.]+$/, ''),
+          folder: folderName,
+          originalUrl: repoRelPath,
+          thumbUrl: repoRelPath,
+          sizeBytes: item.file.size,
+          sizeFormatted: item.sizeFormatted,
+          width: 6048,
+          height: 4032,
+          displayWidth: 6048,
+          displayHeight: 4032,
+          orientation: 1,
+          isPortrait: false,
+          aspectRatio: 1.5,
+          date: new Date().toLocaleDateString('en-US'),
+          camera: 'Original DSLR',
+          id: (album.photos.length || 0) + idx + 1,
+        };
+
+        const existingIdx = album.photos.findIndex((p) => p.filename === item.name);
+        if (existingIdx >= 0) {
+          newPhoto.id = album.photos[existingIdx].id || (existingIdx + 1);
+          album.photos[existingIdx] = newPhoto;
+        } else {
+          album.photos.push(newPhoto);
+        }
+      });
+
+      album.photoCount = album.photos.length;
+      album.status = 'active';
+      album.totalSizeBytes = album.photos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
+      album.totalSizeFormatted = formatBytes(album.totalSizeBytes);
+      album.portraitsCount = album.photos.filter((p) => p.isPortrait).length;
+      album.landscapesCount = album.photos.length - album.portraitsCount;
+
+      if (!album.coverThumb || album.coverThumb.startsWith('blob:')) {
+        album.coverThumb = album.photos[0] ? album.photos[0].thumbUrl : '';
+      }
+      if (!album.coverOriginal || album.coverOriginal.startsWith('blob:')) {
+        album.coverOriginal = album.photos[0] ? album.photos[0].originalUrl : '';
+      }
+
+      // Save custom albums to localStorage and commit manifest to GitHub
+      saveCustomAlbums();
+      renderDashboard();
+      clearStaging();
+
+      setUploadModalComplete({
+        title: '🎉 Upload Complete & Live!',
+        desc: `Successfully saved ${successfullyUploadedPhotos.length} photo(s) directly into "${album.title}".`,
+        albumId: targetAlbumId
+      });
+      confetti.burst();
     } else {
-      showToast('Sync Failed', 'Could not push files. Check token permissions or use python3 admin.py.', '⚠️', 5000);
+      setUploadModalError({
+        title: 'Upload Incomplete',
+        desc: 'GitHub could not store the files. Please verify your connection or token permissions, then try again.',
+      });
     }
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        const base64 = typeof result === 'string' && result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   function openAlbum(albumId, targetPhotoFilename = null) {
