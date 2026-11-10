@@ -5281,6 +5281,44 @@ const ALBUMS_DATA = {
         "id": 277
       }
     ]
+  },
+  "kadur": {
+    "id": "kadur",
+    "title": "Suman",
+    "folder": "Kadur",
+    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
+    "date": "Nov 2026",
+    "photoCount": 1,
+    "portraitsCount": 0,
+    "landscapesCount": 1,
+    "totalSizeBytes": 2208494,
+    "totalSizeFormatted": "2.1 MB",
+    "coverThumb": "Kadur/IMG_6741.jpg",
+    "coverOriginal": "Kadur/IMG_6741.jpg",
+    "status": "active",
+    "isPasswordProtected": true,
+    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
+    "photos": [
+      {
+        "filename": "IMG_6741.jpg",
+        "title": "IMG_6741",
+        "folder": "Kadur",
+        "originalUrl": "Kadur/IMG_6741.jpg",
+        "thumbUrl": "Kadur/IMG_6741.jpg",
+        "sizeBytes": 2208494,
+        "sizeFormatted": "2.1 MB",
+        "width": 6048,
+        "height": 4032,
+        "displayWidth": 6048,
+        "displayHeight": 4032,
+        "orientation": 1,
+        "isPortrait": false,
+        "aspectRatio": 1.5,
+        "date": "11/10/2026",
+        "camera": "Original DSLR",
+        "id": 1
+      }
+    ]
   }
 };
 
