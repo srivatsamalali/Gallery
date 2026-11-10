@@ -494,6 +494,25 @@
     }
 
     if (state.filteredPhotos.length === 0) {
+      if (state.allPhotos.length === 0) {
+        if (el.noResults) el.noResults.classList.remove('visible');
+        const currentAlbum = state.albums[state.currentAlbumId];
+        const albumTitle = currentAlbum ? currentAlbum.title : 'This Collection';
+        const albumId = state.currentAlbumId || '';
+        container.innerHTML = `
+          <div class="empty-album-hero-box" style="grid-column: 1 / -1; text-align: center; padding: 4rem 1.5rem; max-width: 540px; margin: 2rem auto; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm);">
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">📁</div>
+            <h3 style="font-size: 1.4rem; color: var(--text-primary); margin-bottom: 0.5rem; font-family: var(--font-serif);">${albumTitle} is Ready</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+              This event folder was created directly on GitHub and is ready for original master photos.
+            </p>
+            <button type="button" class="modal-btn primary" style="display: inline-flex; align-items: center; gap: 8px; margin: 0 auto; cursor: pointer;" onclick="window.galleryAdmin && window.galleryAdmin.uploadTo ? window.galleryAdmin.uploadTo('${albumId}') : null">
+              <span>📤 Upload Photos to this Collection</span>
+            </button>
+          </div>
+        `;
+        return;
+      }
       if (el.noResults) el.noResults.classList.add('visible');
       return;
     }
@@ -1688,7 +1707,7 @@
           <div class="album-card-footer">
             <span class="album-card-stats">${isActive ? `${album.totalSizeFormatted} Master Quality` : 'Ready for upload'}</span>
             <button class="album-card-btn ${isActive ? '' : 'btn-upcoming'}" type="button">
-              <span>${isProtected ? 'Unlock & View 🔒' : (isActive ? 'Explore Album →' : 'Preview Folder')}</span>
+              <span>${isProtected ? 'Unlock & View 🔒' : (isActive ? 'Explore Album →' : '📤 Upload Photos')}</span>
             </button>
           </div>
         </div>
@@ -1696,12 +1715,20 @@
 
       card.addEventListener('click', (e) => {
         e.preventDefault();
+        if (!isActive) {
+          window.galleryAdmin.uploadTo(album.id);
+          return;
+        }
         tryOpenAlbum(album.id);
       });
 
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          if (!isActive) {
+            window.galleryAdmin.uploadTo(album.id);
+            return;
+          }
           tryOpenAlbum(album.id);
         }
       });
@@ -1762,6 +1789,8 @@
   }
 
   function isAdminVerified() {
+    if (localStorage.getItem('admin_verified') === 'true') return true;
+    if (localStorage.getItem('gh_token')) return true;
     const tStr = sessionStorage.getItem('admin_verified_time');
     if (!tStr) {
       sessionStorage.removeItem('admin_verified');
@@ -1779,11 +1808,13 @@
   function setAdminVerified() {
     sessionStorage.setItem('admin_verified_time', Date.now().toString());
     sessionStorage.setItem('admin_verified', 'true');
+    try { localStorage.setItem('admin_verified', 'true'); } catch (e) {}
   }
 
   function clearAdminVerified() {
     sessionStorage.removeItem('admin_verified_time');
     sessionStorage.removeItem('admin_verified');
+    try { localStorage.removeItem('admin_verified'); } catch (e) {}
   }
 
   function checkActiveFolderSessionExpiry() {
@@ -2057,9 +2088,16 @@
     }
   }
 
-  // --- Auto-Sync Manifest to GitHub (Dual-branch: gh-pages & main) ---
+  // --- Auto-Sync Manifest to GitHub (Dual-branch: gh-pages & main, with mutex queue) ---
+  let isManifestSyncing = false;
+  let pendingManifestSync = false;
   async function syncManifestToGitHub(token) {
     if (!token) return;
+    if (isManifestSyncing) {
+      pendingManifestSync = true;
+      return;
+    }
+    isManifestSyncing = true;
     try {
       const cleanAlbums = sanitizeAlbumsForStorage(state.albums);
       const defaultAlbum = cleanAlbums['baby-showers'] || Object.values(cleanAlbums)[0];
@@ -2085,6 +2123,12 @@
       }
     } catch (err) {
       console.warn('Could not auto-sync manifest to GitHub:', err);
+    } finally {
+      isManifestSyncing = false;
+      if (pendingManifestSync) {
+        pendingManifestSync = false;
+        syncManifestToGitHub(token).catch(console.warn);
+      }
     }
   }
 
@@ -2159,7 +2203,8 @@
         </td>
         <td data-label="Actions">
           <div class="folder-actions-cell">
-            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.managePhotos('${album.id}')">🖼️ Photos & Cover (${album.photoCount || 0})</button>
+            <button type="button" class="btn-table-action primary" onclick="window.galleryAdmin.uploadTo('${album.id}')">📤 Upload</button>
+            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.managePhotos('${album.id}')">🖼️ Photos (${album.photoCount || 0})</button>
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.rename('${album.id}')">✏️ Rename</button>
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.password('${album.id}')">${isProtected ? '🔑 Change Pwd' : '🔑 Set Pwd'}</button>
             <button type="button" class="btn-table-action danger" onclick="window.galleryAdmin.delete('${album.id}')">🗑️ Delete</button>
@@ -2177,58 +2222,79 @@
     const pwd = el.newFolderPwd.value.trim();
     if (!name) return;
 
-    const folderSlug = name.toLowerCase().replace(/[\W_]+/g, '-').replace(/^-+|-+$/g, '');
-    unrecordDeletedAlbum(folderSlug);
-    let pwdHash = '';
-    let isProtected = false;
-    if (pwd) {
-      pwdHash = await sha256(pwd);
-      isProtected = true;
+    const submitBtn = el.formCreateFolder ? el.formCreateFolder.querySelector('button[type="submit"]') : null;
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '⏳ Creating folder on GitHub...';
     }
 
-    const newAlbum = {
-      id: folderSlug,
-      title: name,
-      folder: name,
-      description: 'Preserved in 100% original uncompressed quality. Created by Srivatsa.',
-      date: 'Nov 2026',
-      photoCount: 0,
-      portraitsCount: 0,
-      landscapesCount: 0,
-      totalSizeBytes: 0,
-      totalSizeFormatted: '0 MB',
-      coverThumb: '',
-      coverOriginal: '',
-      status: 'upcoming',
-      isPasswordProtected: isProtected,
-      passwordHash: pwdHash,
-      photos: [],
-    };
+    try {
+      const folderSlug = name.toLowerCase().replace(/[\W_]+/g, '-').replace(/^-+|-+$/g, '');
+      unrecordDeletedAlbum(folderSlug);
+      let pwdHash = '';
+      let isProtected = false;
+      if (pwd) {
+        pwdHash = await sha256(pwd);
+        isProtected = true;
+      }
 
-    state.albums[folderSlug] = newAlbum;
-    saveCustomAlbums();
-    renderDashboard();
-    renderAdminFolderTable();
-    populateUploadFolderDropdown();
-    if (el.uploadTargetFolder) {
-      el.uploadTargetFolder.value = folderSlug;
-    }
-    const token = getActiveToken();
-    if (token) {
-      syncManifestToGitHub(token).catch(console.warn);
-      const gitkeepContent = btoa(`# ${name} Photo Archive - Created by Srivatsa\n`);
-      commitFileToGitHubBranch(token, 'main', `${name}/.gitkeep`, gitkeepContent, `feat(folder): establish ${name} collection folder`).catch(console.warn);
-    }
-    el.newFolderName.value = '';
-    el.newFolderPwd.value = '';
+      const newAlbum = {
+        id: folderSlug,
+        title: name,
+        folder: name,
+        description: 'Upcoming photo collection preserved in uncompressed original quality. Created by Srivatsa.',
+        date: 'Upcoming 2026',
+        photoCount: 0,
+        portraitsCount: 0,
+        landscapesCount: 0,
+        totalSizeBytes: 0,
+        totalSizeFormatted: '0 MB',
+        coverThumb: '',
+        coverOriginal: '',
+        status: 'upcoming',
+        isPasswordProtected: isProtected,
+        passwordHash: pwdHash,
+        photos: [],
+      };
 
-    // Switch smoothly to the Upload tab with the newly created folder selected
-    const uploadTabBtn = document.querySelector('.suite-tab-btn[data-tab="upload"]');
-    if (uploadTabBtn) {
-      uploadTabBtn.click();
-    }
+      // 1. Instantly register in state and update local UI
+      state.albums[folderSlug] = newAlbum;
+      saveCustomAlbums();
+      renderDashboard();
+      renderAdminFolderTable();
+      populateUploadFolderDropdown();
+      if (el.uploadTargetFolder) {
+        el.uploadTargetFolder.value = folderSlug;
+      }
 
-    showToast('Folder Created', `Event folder "${name}" created successfully! Destination folder selected for direct upload.`, '📁', 4500);
+      // 2. Commit directly to GitHub so folder physically exists in the repo
+      const token = getActiveToken();
+      if (token) {
+        const gitkeepContent = btoa(`# ${name} Photo Collection\nCreated by Srivatsa\n`);
+        await commitFileToGitHubBranch(token, 'main', `${name}/.gitkeep`, gitkeepContent, `feat(folder): establish ${name} collection folder`);
+        await syncManifestToGitHub(token);
+      }
+
+      el.newFolderName.value = '';
+      el.newFolderPwd.value = '';
+
+      // 3. Smoothly switch to the Upload tab with the new folder selected
+      const uploadTabBtn = document.querySelector('.suite-tab-btn[data-tab="upload"]');
+      if (uploadTabBtn) {
+        uploadTabBtn.click();
+      }
+
+      showToast('Folder Created & Live', `Event collection "${name}" created on GitHub! Ready to upload photos.`, '📁', 5000);
+    } catch (err) {
+      console.error('Error creating folder:', err);
+      showToast('Notice', `Folder "${name}" registered in gallery. You can now upload photos to it.`, '📁', 4000);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origBtnHtml || '➕ Create & Save Directly to GitHub';
+      }
+    }
   }
 
   // --- Creative Luxury Action Popup Engine (Replaces ugly browser prompt/confirm) ---
@@ -2881,6 +2947,20 @@
     rename: promptRenameFolder,
     delete: promptDeleteFolder,
     managePhotos: switchToManagePhotosTab,
+    uploadTo: (albumId) => {
+      openAdminAuthModal();
+      if (!isAdminVerified()) return;
+      openAdminSuite();
+      if (el.suiteTabBtns) {
+        el.suiteTabBtns.forEach((b) => b.classList.toggle('active', b.dataset.tab === 'upload'));
+      }
+      document.querySelectorAll('.suite-tab-content').forEach((tc) => {
+        tc.style.display = tc.id === 'tab-content-upload' ? 'block' : 'none';
+      });
+      if (el.uploadTargetFolder && albumId) {
+        el.uploadTargetFolder.value = albumId;
+      }
+    },
     setCover: (filename) => {
       const albumId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : Object.keys(state.albums)[0]);
       setAlbumCoverPhoto(albumId, filename);
