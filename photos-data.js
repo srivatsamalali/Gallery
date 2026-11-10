@@ -6,10 +6,10 @@ const ALBUMS_DATA = {
     "folder": "Baby Showers",
     "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
     "date": "2026:11:06 10:35:29",
-    "photoCount": 277,
+    "photoCount": 278,
     "portraitsCount": 42,
-    "landscapesCount": 235,
-    "totalSizeBytes": 4946222267,
+    "landscapesCount": 236,
+    "totalSizeBytes": 4950003377,
     "totalSizeFormatted": "4.61 GB",
     "coverThumb": "thumbnails/DSC_0306.JPG",
     "coverOriginal": "Baby Showers/DSC_0306.JPG",
@@ -5279,6 +5279,25 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 14:28:54",
         "camera": "Nikon Z6 III",
         "id": 277
+      },
+      {
+        "filename": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+        "title": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F",
+        "folder": "Baby Showers",
+        "originalUrl": "Baby Showers/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+        "thumbUrl": "Baby Showers/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+        "sizeBytes": 3781110,
+        "sizeFormatted": "3.6 MB",
+        "width": 6048,
+        "height": 4032,
+        "displayWidth": 6048,
+        "displayHeight": 4032,
+        "orientation": 1,
+        "isPortrait": false,
+        "aspectRatio": 1.5,
+        "date": "11/10/2026",
+        "camera": "Original DSLR",
+        "id": 278
       }
     ]
   },
@@ -5889,24 +5908,6 @@ const ALBUMS_DATA = {
         "id": 31
       }
     ]
-  },
-  "srivatsa": {
-    "id": "srivatsa",
-    "title": "Srivatsa",
-    "folder": "Srivatsa",
-    "description": "Preserved in 100% original uncompressed quality. Created by Srivatsa.",
-    "date": "Nov 2026",
-    "photoCount": 0,
-    "portraitsCount": 0,
-    "landscapesCount": 0,
-    "totalSizeBytes": 0,
-    "totalSizeFormatted": "0 MB",
-    "coverThumb": "",
-    "coverOriginal": "",
-    "status": "upcoming",
-    "isPasswordProtected": true,
-    "passwordHash": "2fdc594439d8286a67da4646f977b05d497836c51bb39fe61e90739371d947ab",
-    "photos": []
   }
 };
 
@@ -11173,5 +11174,24 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 14:28:54",
     "camera": "Nikon Z6 III",
     "id": 277
+  },
+  {
+    "filename": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+    "title": "C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F",
+    "folder": "Baby Showers",
+    "originalUrl": "Baby Showers/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+    "thumbUrl": "Baby Showers/C3C67F1B-42C4-4C8F-9616-4D495C0ADC5F.PNG",
+    "sizeBytes": 3781110,
+    "sizeFormatted": "3.6 MB",
+    "width": 6048,
+    "height": 4032,
+    "displayWidth": 6048,
+    "displayHeight": 4032,
+    "orientation": 1,
+    "isPortrait": false,
+    "aspectRatio": 1.5,
+    "date": "11/10/2026",
+    "camera": "Original DSLR",
+    "id": 278
   }
 ];
