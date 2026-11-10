@@ -1828,50 +1828,66 @@
     showToast('Logged Out', 'Admin session terminated. Passcode required to enter again.', '🔒', 3500);
   }
 
-  // --- GitHub API Direct File Committer (Dual branch: gh-pages & main) ---
-  async function commitFileToGitHubBranch(token, branch, repoPath, base64Content, commitMessage) {
+  // --- GitHub API Direct File Committer (Dual branch: gh-pages & main, with auto-retry) ---
+  async function commitFileToGitHubBranch(token, branch, repoPath, base64Content, commitMessage, maxRetries = 3) {
     if (!token) return false;
-    // Encode path segments individually so '/' remains a path separator
     const encodedPath = repoPath.split('/').map(encodeURIComponent).join('/');
-    let sha = null;
-    try {
-      const checkRes = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}?ref=${branch}`, {
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      let sha = null;
+      try {
+        const checkRes = await fetch(
+          `https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}?ref=${branch}&_ts=${Date.now()}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+            },
+            cache: 'no-store',
+          }
+        );
+        if (checkRes.ok) {
+          const data = await checkRes.json();
+          sha = data.sha;
+        }
+      } catch (e) {
+        console.warn(`[Attempt ${attempt}] Could not check SHA for ${repoPath} on ${branch}:`, e);
+      }
+
+      const payload = {
+        message: commitMessage,
+        content: base64Content,
+        branch: branch,
+      };
+      if (sha) payload.sha = sha;
+
+      const res = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(payload),
       });
-      if (checkRes.ok) {
-        const data = await checkRes.json();
-        sha = data.sha;
+
+      if (res.ok) {
+        return true;
       }
-    } catch (e) {
-      console.warn(`Could not check SHA for ${repoPath} on ${branch}:`, e);
-    }
 
-    const payload = {
-      message: commitMessage,
-      content: base64Content,
-      branch: branch,
-    };
-    if (sha) payload.sha = sha;
-
-    const res = await fetch(`https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
       const errText = await res.text();
-      console.error(`Failed to commit ${repoPath} to branch ${branch}:`, errText);
-      return false;
+      console.warn(`[Attempt ${attempt}/${maxRetries}] Failed to commit ${repoPath} to ${branch} (HTTP ${res.status}):`, errText);
+      if (res.status === 409 && attempt < maxRetries) {
+        // Stale SHA conflict: wait briefly and retry with fresh SHA
+        await new Promise((r) => setTimeout(r, 600 * attempt));
+        continue;
+      }
+      if (attempt === maxRetries) {
+        console.error(`Exhausted retries committing ${repoPath} to ${branch}:`, errText);
+        return false;
+      }
     }
-    return true;
+    return false;
   }
 
   // --- Auto-Sync Manifest to GitHub (Dual-branch: gh-pages & main) ---
@@ -2567,6 +2583,9 @@
 
       // Save custom albums to localStorage and commit manifest to GitHub
       saveCustomAlbums();
+      if (token) {
+        await syncManifestToGitHub(token);
+      }
       renderDashboard();
       clearStaging();
 
