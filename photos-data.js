@@ -5927,6 +5927,24 @@ const ALBUMS_DATA = {
         "id": 31
       }
     ]
+  },
+  "kadur": {
+    "id": "kadur",
+    "title": "Kadur",
+    "folder": "Kadur",
+    "description": "Upcoming photo collection preserved in uncompressed original quality. Created by Srivatsa.",
+    "date": "Upcoming 2026",
+    "photoCount": 0,
+    "portraitsCount": 0,
+    "landscapesCount": 0,
+    "totalSizeBytes": 0,
+    "totalSizeFormatted": "0 MB",
+    "coverThumb": "",
+    "coverOriginal": "",
+    "status": "upcoming",
+    "isPasswordProtected": false,
+    "passwordHash": "",
+    "photos": []
   }
 };
 
