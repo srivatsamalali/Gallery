@@ -296,13 +296,70 @@
   }
 
   // --- URL Resolver for Original Files ---
+  const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/srivatsamalali/Gallery/main';
+
   function getOriginalUrl(photo) {
     if (!photo) return '';
     if (window.location.hostname.endsWith('github.io')) {
-      return `https://raw.githubusercontent.com/srivatsamalali/Gallery/main/${encodeURI(photo.originalUrl)}`;
+      return `${GITHUB_RAW_BASE}/${encodeURI(photo.originalUrl)}`;
     }
     return encodeURI(photo.originalUrl);
   }
+
+  // --- Robust Global Error Handlers for Images (Safari, Mobile & Instant Raw Sync) ---
+  window.handleCoverImgError = function(img, isWedding, fallbackPath) {
+    if (!img) return;
+    const cleanPath = (fallbackPath || '').replace(/^\/+/, '');
+    if (cleanPath && !img.dataset.triedRaw && !cleanPath.startsWith('blob:')) {
+      img.dataset.triedRaw = 'true';
+      img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanPath)}`;
+      return;
+    }
+
+    img.onerror = null;
+    const parent = img.parentElement;
+    if (!parent) return;
+    const isW = !!isWedding;
+    parent.className = `album-card-cover placeholder-luxury-art ${isW ? 'art-wedding' : 'art-prewedding'}`;
+    const icon = isW
+      ? `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
+      : `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5.5"></circle><circle cx="15" cy="12" r="5.5"></circle></svg>`;
+    parent.innerHTML = `
+      <div class="luxury-art-backdrop"></div>
+      <div class="luxury-art-content">
+        <div class="luxury-art-icon-wrap">${icon}</div>
+        <span class="luxury-art-tag">${isW ? 'Grand Celebrations' : 'Romantic Moments'}</span>
+        <span class="luxury-art-badge">✦ Photos Arriving Soon ✦</span>
+      </div>
+    `;
+  };
+
+  window.handlePhotoImgError = function(img, origUrl) {
+    if (!img) return;
+    const cleanOrig = (origUrl || '').replace(/^\/+/, '');
+
+    // Stage 1: Try raw.githubusercontent.com so newly uploaded photos display instantly before GitHub Pages builds
+    if (cleanOrig && !img.dataset.triedRaw && !cleanOrig.startsWith('blob:')) {
+      img.dataset.triedRaw = 'true';
+      img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanOrig)}`;
+      return;
+    }
+
+    // Stage 2: If file is missing or still in progress, show graceful placeholder
+    img.style.display = 'none';
+    const parent = img.parentElement;
+    if (!parent || parent.querySelector('.img-missing-fallback')) return;
+    const fb = document.createElement('div');
+    fb.className = 'img-missing-fallback';
+    fb.innerHTML = `
+      <div style="text-align:center;padding:2.5rem 1rem;color:#b2955d;">
+        <div style="font-size:2.2rem;margin-bottom:0.5rem;">📷</div>
+        <div style="font-weight:600;font-size:0.95rem;color:#8a704c;">Photo Processing on GitHub</div>
+        <div style="font-size:0.8rem;opacity:0.8;margin-top:0.3rem;color:#6b583e;">Original file stored in repository</div>
+      </div>
+    `;
+    parent.appendChild(fb);
+  };
 
   // --- Format Utilities ---
   function formatDate(raw) {
@@ -489,7 +546,7 @@
           alt="${photo.title}"
           loading="lazy"
           decoding="async"
-          onerror="if(this.src !== '${encodeURI(photo.originalUrl)}'){ this.src='${encodeURI(photo.originalUrl)}'; } else { this.style.display='none'; if(!this.parentElement.querySelector('.img-missing-fallback')){ const fb=document.createElement('div'); fb.className='img-missing-fallback'; fb.innerHTML='<div style=\'text-align:center;padding:2.5rem 1rem;color:#b2955d;\'><div style=\'font-size:2.2rem;margin-bottom:0.5rem;\'>📷</div><div style=\'font-weight:600;font-size:0.95rem;color:#8a704c;\'>Photo File Pending Upload</div><div style=\'font-size:0.8rem;opacity:0.8;margin-top:0.3rem;color:#6b583e;\'>Please upload via Manage Folders & Uploads</div></div>'; this.parentElement.appendChild(fb); } }"
+          onerror="handlePhotoImgError(this, '${encodeURI(photo.originalUrl)}')"
         />
 
         <div class="card-overlay">
@@ -1252,9 +1309,23 @@
         const parsed = JSON.parse(stored);
         const sanitized = sanitizeAlbumsForStorage(parsed);
         Object.keys(sanitized).forEach((id) => {
+          // Authoritative manifest in photos-data.js supersedes stale local storage
+          if (typeof ALBUMS_DATA !== 'undefined' && ALBUMS_DATA[id] && Array.isArray(ALBUMS_DATA[id].photos)) {
+            sanitized[id].photos = ALBUMS_DATA[id].photos;
+            sanitized[id].photoCount = ALBUMS_DATA[id].photos.length;
+            sanitized[id].totalSizeBytes = ALBUMS_DATA[id].totalSizeBytes || 0;
+            sanitized[id].totalSizeFormatted = ALBUMS_DATA[id].totalSizeFormatted || '0 MB';
+            sanitized[id].portraitsCount = ALBUMS_DATA[id].portraitsCount || 0;
+            sanitized[id].landscapesCount = ALBUMS_DATA[id].landscapesCount || 0;
+            if (sanitized[id].photoCount === 0) {
+              sanitized[id].coverThumb = '';
+              sanitized[id].coverOriginal = '';
+              sanitized[id].status = 'upcoming';
+            }
+          }
           state.albums[id] = Object.assign(state.albums[id] || {}, sanitized[id]);
         });
-        // Self-heal localStorage so tainted blob: URLs are eliminated permanently
+        // Self-heal localStorage so tainted blob: URLs and phantom entries are eliminated permanently
         localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));
       }
     } catch (e) {
@@ -1402,7 +1473,7 @@
               src="${encodeURI(album.coverThumb)}"
               alt="${album.title} Cover"
               loading="lazy"
-              onerror="this.onerror=null; this.parentElement.className='album-card-cover placeholder-luxury-art ${isWedding ? 'art-wedding' : 'art-prewedding'}'; this.parentElement.innerHTML='<div class=\\'luxury-art-backdrop\\'></div><div class=\\'luxury-art-content\\'><div class=\\'luxury-art-icon-wrap\\'>${luxurySvg}</div><span class=\\'luxury-art-tag\\'>${isWedding ? 'Grand Celebrations' : 'Romantic Moments'}</span><span class=\\'luxury-art-badge\\'>✦ Ready for Photos ✦</span></div>';"
+              onerror="handleCoverImgError(this, ${isWedding}, '${encodeURI(album.coverOriginal || album.coverThumb || '')}')"
             >
           </div>
         `;
@@ -3350,13 +3421,25 @@
   let lastManifestSync = 0;
   async function refreshManifestFromLiveNetwork(force = false) {
     const now = Date.now();
-    if (!force && now - lastManifestSync < 20000) return;
+    if (!force && now - lastManifestSync < 15000) return;
     lastManifestSync = now;
 
     try {
-      const res = await fetch(`photos-data.js?_live=${now}`, { cache: 'no-store' });
-      if (!res.ok) return;
-      const text = await res.text();
+      let text = '';
+      // Try raw.githubusercontent.com first for immediate (0-second) synchronization upon upload
+      try {
+        const rawRes = await fetch(`${GITHUB_RAW_BASE}/photos-data.js?_live=${now}`, { cache: 'no-store' });
+        if (rawRes.ok) text = await rawRes.text();
+      } catch (rawErr) {
+        // Fall back to local path if network restricts raw.githubusercontent
+      }
+
+      if (!text) {
+        const res = await fetch(`photos-data.js?_live=${now}`, { cache: 'no-store' });
+        if (res.ok) text = await res.text();
+      }
+      if (!text) return;
+
       const match = text.match(/const ALBUMS_DATA = (\{[\s\S]*?\});\s*const PHOTOS_DATA/);
       if (!match) return;
 
