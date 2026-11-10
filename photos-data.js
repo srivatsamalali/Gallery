@@ -5585,11 +5585,11 @@ const ALBUMS_DATA = {
         "id": 15
       },
       {
-        "filename": "IMG_6741 2.jpg",
-        "title": "IMG_6741 2",
+        "filename": "IMG_6741.jpg",
+        "title": "IMG_6741",
         "folder": "Suman",
-        "originalUrl": "Suman/IMG_6741 2.jpg",
-        "thumbUrl": "thumbnails/Suman/IMG_6741 2.jpg",
+        "originalUrl": "Suman/IMG_6741.jpg",
+        "thumbUrl": "thumbnails/Suman/IMG_6741.jpg",
         "sizeBytes": 2208494,
         "sizeFormatted": "2.1 MB",
         "width": 3024,

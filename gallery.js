@@ -297,6 +297,7 @@
 
   // --- URL Resolver for Original Files ---
   const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/srivatsamalali/Gallery/main';
+  const THUMB_VERSION = 'v=20261110_1250';
 
   function getOriginalUrl(photo) {
     if (!photo) return '';
@@ -306,10 +307,17 @@
     return encodeURI(photo.originalUrl);
   }
 
+  function getThumbUrl(photo) {
+    if (!photo || !photo.thumbUrl) return '';
+    const cleanThumb = (photo.thumbUrl || '').replace(/^\/+/, '');
+    const sep = cleanThumb.includes('?') ? '&' : '?';
+    return `${cleanThumb}${sep}${THUMB_VERSION}`;
+  }
+
   // --- Robust Global Error Handlers for Images (Safari, Mobile & Instant Raw Sync) ---
   window.handleCoverImgError = function(img, isWedding, fallbackPath) {
     if (!img) return;
-    const cleanPath = (fallbackPath || '').replace(/^\/+/, '');
+    const cleanPath = (fallbackPath || '').replace(/^\/+/, '').split('?')[0];
     if (cleanPath && !img.dataset.triedRaw && !cleanPath.startsWith('blob:')) {
       img.dataset.triedRaw = 'true';
       img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanPath)}`;
@@ -334,18 +342,26 @@
     `;
   };
 
-  window.handlePhotoImgError = function(img, origUrl) {
+  window.handlePhotoImgError = function(img, origUrl, thumbUrl) {
     if (!img) return;
     const cleanOrig = (origUrl || '').replace(/^\/+/, '');
+    const cleanThumb = (thumbUrl || '').replace(/^\/+/, '').split('?')[0];
 
-    // Stage 1: Try raw.githubusercontent.com so newly uploaded photos display instantly before GitHub Pages builds
+    // Stage 1: Try raw.githubusercontent.com for thumbnail (ultra fast, instant CDN)
+    if (cleanThumb && !img.dataset.triedRawThumb && !cleanThumb.startsWith('blob:')) {
+      img.dataset.triedRawThumb = 'true';
+      img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanThumb)}`;
+      return;
+    }
+
+    // Stage 2: Try raw.githubusercontent.com so newly uploaded photos display instantly before GitHub Pages builds
     if (cleanOrig && !img.dataset.triedRaw && !cleanOrig.startsWith('blob:')) {
       img.dataset.triedRaw = 'true';
       img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanOrig)}`;
       return;
     }
 
-    // Stage 2: If file is missing or still in progress, show graceful placeholder
+    // Stage 3: If file is missing or still in progress, show graceful placeholder
     img.style.display = 'none';
     const parent = img.parentElement;
     if (!parent || parent.querySelector('.img-missing-fallback')) return;
@@ -542,11 +558,11 @@
 
         <img
           class="photo-img"
-          src="${encodeURI(photo.thumbUrl)}"
+          src="${getThumbUrl(photo)}"
           alt="${photo.title}"
           loading="lazy"
           decoding="async"
-          onerror="handlePhotoImgError(this, '${encodeURI(photo.originalUrl)}')"
+          onerror="handlePhotoImgError(this, '${encodeURI(photo.originalUrl)}', '${encodeURI(photo.thumbUrl)}')"
         />
 
         <div class="card-overlay">
@@ -1012,13 +1028,13 @@
 
     // Cinema Ambient Backlight Aura
     if (el.lbAmbientGlow) {
-      el.lbAmbientGlow.style.backgroundImage = `url("${encodeURI(photo.thumbUrl)}")`;
+      el.lbAmbientGlow.style.backgroundImage = `url("${getThumbUrl(photo)}")`;
       el.lbAmbientGlow.style.opacity = '0.55';
     }
 
     // Load preview with smooth cross-fade
     el.lbImg.style.opacity = '0.3';
-    el.lbImg.src = encodeURI(photo.thumbUrl);
+    el.lbImg.src = getThumbUrl(photo);
 
     // Apply Ken Burns animation if slideshow running
     if (state.slideshowRunning) {
@@ -1538,10 +1554,11 @@
         : `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5.5"></circle><circle cx="15" cy="12" r="5.5"></circle></svg>`;
 
       if (album.coverThumb && !album.coverThumb.startsWith('blob:')) {
+        const coverSrc = album.coverThumb.includes('?') ? `${album.coverThumb}&${THUMB_VERSION}` : `${album.coverThumb}?${THUMB_VERSION}`;
         coverHtml = `
           <div class="album-card-cover">
             <img
-              src="${encodeURI(album.coverThumb)}"
+              src="${encodeURI(coverSrc)}"
               alt="${album.title} Cover"
               loading="lazy"
               onerror="handleCoverImgError(this, ${isWedding}, '${encodeURI(album.coverOriginal || album.coverThumb || '')}')"
