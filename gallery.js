@@ -2472,8 +2472,17 @@
     const albumParam = params.get('album');
     const photoParam = params.get('photo');
 
-    if (albumParam && state.albums[albumParam]) {
-      tryOpenAlbum(albumParam, photoParam);
+    let resolvedAlbum = albumParam;
+    if (resolvedAlbum && !state.albums[resolvedAlbum]) {
+      if (resolvedAlbum === 'pre-wedding-photoshoot' && state.albums['pre-wedding-shoot']) {
+        resolvedAlbum = 'pre-wedding-shoot';
+      } else if (resolvedAlbum === 'pre-wedding-shoot' && state.albums['pre-wedding-photoshoot']) {
+        resolvedAlbum = 'pre-wedding-photoshoot';
+      }
+    }
+
+    if (resolvedAlbum && state.albums[resolvedAlbum]) {
+      tryOpenAlbum(resolvedAlbum, photoParam);
     } else if (cleanHash.startsWith('photo=')) {
       const legacyPhoto = decodeURIComponent(cleanHash.replace('photo=', ''));
       tryOpenAlbum('baby-showers', legacyPhoto);
