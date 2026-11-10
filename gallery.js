@@ -30,6 +30,8 @@
     renderedCount: 28,
     stagedFiles: [],
     pendingUnlockAlbum: null,
+    manageSelectedPhotos: new Set(),
+    manageTargetAlbumId: null,
   };
 
   // --- Admin Security Constants ---
@@ -112,6 +114,18 @@
     btnCommitUpload: document.getElementById('btn-commit-upload'),
     ghTokenInput: document.getElementById('gh-token-input'),
     btnSaveGhToken: document.getElementById('btn-save-gh-token'),
+
+    // Photo Management Elements
+    tabContentPhotos: document.getElementById('tab-content-photos'),
+    manageTargetFolder: document.getElementById('manage-target-folder'),
+    managePhotoSearch: document.getElementById('manage-photo-search'),
+    managePhotosStats: document.getElementById('manage-photos-stats'),
+    btnManageSelectAll: document.getElementById('btn-manage-select-all'),
+    btnManageDeselectAll: document.getElementById('btn-manage-deselect-all'),
+    btnManageDeleteSelected: document.getElementById('btn-manage-delete-selected'),
+    manageSelectedCount: document.getElementById('manage-selected-count'),
+    modalPhotosGrid: document.getElementById('modal-photos-grid'),
+    modalPhotosEmpty: document.getElementById('modal-photos-empty'),
 
     // Upload Progress Modal Elements
     uploadProgressModal: document.getElementById('upload-progress-modal'),
@@ -572,6 +586,14 @@
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
             </button>
+            ${isAdminVerified() ? `
+            <button class="overlay-btn btn-admin-card-delete" title="Admin: Delete Photo from Collection" onclick="event.stopPropagation(); window.galleryAdmin.deletePhoto('${photo.filename}');">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+            ` : ''}
             <button class="overlay-btn btn-expand" title="Large Preview">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="15 3 21 3 21 9"></polyline>
@@ -1329,6 +1351,22 @@
     } catch (e) {}
   }
 
+  function getDeletedPhotoKeys() {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('gallery_deleted_photos') || '[]'));
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function recordDeletedPhoto(albumId, filename) {
+    try {
+      const deleted = getDeletedPhotoKeys();
+      deleted.add(`${albumId}:${filename}`);
+      localStorage.setItem('gallery_deleted_photos', JSON.stringify([...deleted]));
+    } catch (e) {}
+  }
+
   // --- Storage Helper for Custom Folders & Passwords ---
   function saveCustomAlbums() {
     try {
@@ -1371,6 +1409,7 @@
       });
 
       const stored = localStorage.getItem('gallery_custom_albums');
+      const deletedPhotoKeys = getDeletedPhotoKeys();
       if (stored) {
         const parsed = JSON.parse(stored);
         const sanitized = sanitizeAlbumsForStorage(parsed);
@@ -1392,6 +1431,10 @@
               sanitized[id].coverOriginal = '';
               sanitized[id].status = 'upcoming';
             }
+          }
+          if (sanitized[id].photos && Array.isArray(sanitized[id].photos)) {
+            sanitized[id].photos = sanitized[id].photos.filter((p) => !deletedPhotoKeys.has(`${id}:${p.filename}`));
+            sanitized[id].photoCount = sanitized[id].photos.length;
           }
           state.albums[id] = Object.assign(state.albums[id] || {}, sanitized[id]);
         });
@@ -1918,6 +1961,48 @@
     return false;
   }
 
+  // --- GitHub API File Deleter (Dual branch: gh-pages & main) ---
+  async function deleteFileFromGitHubBranch(token, branch, repoPath, commitMessage) {
+    if (!token) return false;
+    const encodedPath = repoPath.split('/').map(encodeURIComponent).join('/');
+    try {
+      const checkRes = await fetch(
+        `https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}?ref=${branch}&_ts=${Date.now()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+          },
+        }
+      );
+      if (!checkRes.ok) return false;
+      const checkData = await checkRes.json();
+      const sha = checkData.sha;
+      if (!sha) return false;
+
+      const delRes = await fetch(
+        `https://api.github.com/repos/srivatsamalali/Gallery/contents/${encodedPath}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: commitMessage || `chore: delete ${repoPath}`,
+            sha,
+            branch,
+          }),
+        }
+      );
+      return delRes.ok;
+    } catch (e) {
+      console.warn(`Failed to delete ${repoPath} from ${branch}:`, e);
+      return false;
+    }
+  }
+
   // --- Auto-Sync Manifest to GitHub (Dual-branch: gh-pages & main) ---
   async function syncManifestToGitHub(token) {
     if (!token) return;
@@ -1963,6 +2048,8 @@
   function openAdminSuite() {
     renderAdminFolderTable();
     populateUploadFolderDropdown();
+    populateManageFolderDropdown();
+    renderModalPhotosGrid();
     if (el.ghTokenInput) el.ghTokenInput.value = localStorage.getItem('gh_token') || '';
     if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'flex';
   }
@@ -1999,6 +2086,7 @@
         </td>
         <td data-label="Actions">
           <div class="folder-actions-cell">
+            <button type="button" class="btn-table-action" onclick="window.galleryAdmin.managePhotos('${album.id}')">🖼️ Photos (${album.photoCount || 0})</button>
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.rename('${album.id}')">✏️ Rename</button>
             <button type="button" class="btn-table-action" onclick="window.galleryAdmin.password('${album.id}')">${isProtected ? '🔑 Change Pwd' : '🔑 Set Pwd'}</button>
             <button type="button" class="btn-table-action danger" onclick="window.galleryAdmin.delete('${album.id}')">🗑️ Delete</button>
@@ -2344,12 +2432,300 @@
     showToast('Folder Deleted', `Permanently removed "${album.title}".`, '🗑️', 3000);
   }
 
+  // --- Photo Management & Deletion Engine (Suite Modal & Gallery) ---
+  function populateManageFolderDropdown(preselectedAlbumId) {
+    if (!el.manageTargetFolder) return;
+    el.manageTargetFolder.innerHTML = '';
+    const albums = Object.values(state.albums);
+    albums.forEach((album) => {
+      const opt = document.createElement('option');
+      opt.value = album.id;
+      opt.textContent = `${album.title} (${album.photoCount || 0} photos)`;
+      if (preselectedAlbumId && album.id === preselectedAlbumId) {
+        opt.selected = true;
+      }
+      el.manageTargetFolder.appendChild(opt);
+    });
+
+    if (!preselectedAlbumId && albums.length > 0) {
+      const targetId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : albums[0].id);
+      el.manageTargetFolder.value = targetId;
+    }
+  }
+
+  function renderModalPhotosGrid() {
+    if (!el.modalPhotosGrid || !el.manageTargetFolder) return;
+    const albumId = el.manageTargetFolder.value;
+    const album = state.albums[albumId];
+
+    if (!album || !album.photos || album.photos.length === 0) {
+      el.modalPhotosGrid.innerHTML = '';
+      if (el.modalPhotosEmpty) el.modalPhotosEmpty.style.display = 'block';
+      if (el.managePhotosStats) el.managePhotosStats.textContent = '0 photos in this album';
+      updateManageBatchButtons();
+      return;
+    }
+
+    if (el.modalPhotosEmpty) el.modalPhotosEmpty.style.display = 'none';
+
+    const searchQuery = (el.managePhotoSearch ? el.managePhotoSearch.value : '').toLowerCase().trim();
+    const photos = album.photos.filter((p) => {
+      if (!searchQuery) return true;
+      return p.filename.toLowerCase().includes(searchQuery) ||
+             (p.title && p.title.toLowerCase().includes(searchQuery)) ||
+             String(p.id).includes(searchQuery);
+    });
+
+    if (el.managePhotosStats) {
+      const totalSize = album.totalSizeFormatted || formatBytes(album.totalSizeBytes || 0);
+      el.managePhotosStats.textContent = `Showing ${photos.length} of ${album.photos.length} photos • ${totalSize} total`;
+    }
+
+    el.modalPhotosGrid.innerHTML = '';
+
+    if (photos.length === 0) {
+      el.modalPhotosGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-muted); font-size: 0.9rem;">
+          No photos match "${searchQuery}".
+        </div>
+      `;
+      updateManageBatchButtons();
+      return;
+    }
+
+    photos.forEach((photo) => {
+      const isSelected = state.manageSelectedPhotos.has(photo.filename);
+      const card = document.createElement('div');
+      card.className = `modal-photo-card ${isSelected ? 'selected' : ''}`;
+      card.id = `modal-photo-card-${encodeURIComponent(photo.filename)}`;
+
+      card.innerHTML = `
+        <div class="modal-photo-thumb-wrap">
+          <div class="modal-photo-select-checkbox" data-filename="${photo.filename}" title="Select for batch action">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <img
+            class="modal-photo-thumb"
+            src="${getThumbUrl(photo)}"
+            alt="${photo.title || photo.filename}"
+            loading="lazy"
+            decoding="async"
+            onerror="handlePhotoImgError(this, '${encodeURI(photo.originalUrl)}', '${encodeURI(photo.thumbUrl)}')"
+          />
+        </div>
+        <div class="modal-photo-body">
+          <div class="modal-photo-name" title="${photo.filename}">${photo.filename}</div>
+          <div class="modal-photo-meta">
+            <span>💾 ${photo.sizeFormatted || 'Master'}</span>
+            <span>${photo.width ? `${photo.width}×${photo.height}` : ''}</span>
+          </div>
+          <button type="button" class="btn-photo-delete" data-filename="${photo.filename}" title="Permanently delete this photo">
+            🗑️ Delete
+          </button>
+        </div>
+      `;
+
+      // Checkbox click handler
+      const chk = card.querySelector('.modal-photo-select-checkbox');
+      chk.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleManagePhotoSelection(photo.filename, card);
+      });
+
+      // Delete button click handler
+      const delBtn = card.querySelector('.btn-photo-delete');
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        promptDeleteSinglePhoto(albumId, photo.filename);
+      });
+
+      // Card click toggles selection
+      card.addEventListener('click', () => {
+        toggleManagePhotoSelection(photo.filename, card);
+      });
+
+      el.modalPhotosGrid.appendChild(card);
+    });
+
+    updateManageBatchButtons();
+  }
+
+  function toggleManagePhotoSelection(filename, cardElement) {
+    if (state.manageSelectedPhotos.has(filename)) {
+      state.manageSelectedPhotos.delete(filename);
+      if (cardElement) cardElement.classList.remove('selected');
+    } else {
+      state.manageSelectedPhotos.add(filename);
+      if (cardElement) cardElement.classList.add('selected');
+    }
+    updateManageBatchButtons();
+  }
+
+  function updateManageBatchButtons() {
+    const count = state.manageSelectedPhotos.size;
+    if (el.manageSelectedCount) el.manageSelectedCount.textContent = count;
+    if (el.btnManageDeleteSelected) el.btnManageDeleteSelected.style.display = count > 0 ? 'inline-flex' : 'none';
+    if (el.btnManageDeselectAll) el.btnManageDeselectAll.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+
+  async function promptDeleteSinglePhoto(albumId, filename) {
+    if (!checkAdminAccess()) return;
+    const album = state.albums[albumId];
+    if (!album) return;
+
+    const photo = (album.photos || []).find((p) => p.filename === filename);
+    if (!photo) return;
+
+    const confirmed = await showCreativeConfirm({
+      icon: '🗑️',
+      iconClass: 'danger-icon-wrap',
+      title: 'Delete Photo?',
+      subtitle: `Are you sure you want to permanently delete "${filename}" from collection "${album.title}"?`,
+      warningText: 'This photo will be removed from your gallery, album statistics, and GitHub repository.',
+      confirmText: 'Yes, Delete Photo',
+      cancelText: 'Keep Photo',
+      isDanger: true,
+    });
+
+    if (!confirmed) return;
+
+    // Remove photo from album
+    album.photos = album.photos.filter((p) => p.filename !== filename);
+    album.photoCount = album.photos.length;
+    album.totalSizeBytes = album.photos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
+    album.totalSizeFormatted = formatBytes(album.totalSizeBytes);
+    album.portraitsCount = album.photos.filter((p) => p.isPortrait).length;
+    album.landscapesCount = album.photos.length - album.portraitsCount;
+
+    // If cover was this photo, re-assign cover
+    if (album.coverThumb && album.coverThumb.includes(filename)) {
+      album.coverThumb = album.photos[0] ? album.photos[0].thumbUrl : '';
+    }
+    if (album.coverOriginal && album.coverOriginal.includes(filename)) {
+      album.coverOriginal = album.photos[0] ? album.photos[0].originalUrl : '';
+    }
+
+    // Record tombstone
+    recordDeletedPhoto(albumId, filename);
+    state.manageSelectedPhotos.delete(filename);
+
+    // Save changes to localStorage & trigger GitHub manifest auto-sync
+    saveCustomAlbums();
+
+    // Re-render UI
+    renderModalPhotosGrid();
+    renderAdminFolderTable();
+    populateUploadFolderDropdown();
+    renderDashboard();
+
+    // If current open album is this album, update photo grid
+    if (state.currentAlbumId === albumId) {
+      applyFiltersAndSort();
+    }
+
+    showToast('Photo Deleted', `Permanently removed "${filename}" from "${album.title}".`, '🗑️', 3500);
+
+    // Background deletion from GitHub branches if token available
+    const token = getActiveToken();
+    if (token) {
+      const folderName = album.folder || album.title;
+      deleteFileFromGitHubBranch(token, 'main', `${folderName}/${filename}`, `chore: delete photo ${filename}`);
+      deleteFileFromGitHubBranch(token, 'main', `thumbnails/${folderName}/${filename}`, `chore: delete thumbnail ${filename}`);
+      deleteFileFromGitHubBranch(token, 'gh-pages', `thumbnails/${folderName}/${filename}`, `chore: delete thumbnail ${filename}`);
+    }
+  }
+
+  async function promptDeleteBatchPhotos() {
+    if (!checkAdminAccess()) return;
+    const albumId = el.manageTargetFolder ? el.manageTargetFolder.value : null;
+    const album = state.albums[albumId];
+    if (!album) return;
+
+    const selectedFilenames = Array.from(state.manageSelectedPhotos);
+    if (selectedFilenames.length === 0) return;
+
+    const confirmed = await showCreativeConfirm({
+      icon: '🗑️',
+      iconClass: 'danger-icon-wrap',
+      title: `Delete ${selectedFilenames.length} Photos?`,
+      subtitle: `Are you sure you want to permanently delete ${selectedFilenames.length} photo(s) from "${album.title}"?`,
+      warningText: `This will permanently remove ${selectedFilenames.length} photo(s) from your gallery and GitHub sync.`,
+      confirmText: `Yes, Delete ${selectedFilenames.length} Photos`,
+      cancelText: 'Keep Photos',
+      isDanger: true,
+    });
+
+    if (!confirmed) return;
+
+    const set = new Set(selectedFilenames);
+    album.photos = album.photos.filter((p) => !set.has(p.filename));
+    album.photoCount = album.photos.length;
+    album.totalSizeBytes = album.photos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
+    album.totalSizeFormatted = formatBytes(album.totalSizeBytes);
+    album.portraitsCount = album.photos.filter((p) => p.isPortrait).length;
+    album.landscapesCount = album.photos.length - album.portraitsCount;
+
+    if (album.coverThumb && selectedFilenames.some((fn) => album.coverThumb.includes(fn))) {
+      album.coverThumb = album.photos[0] ? album.photos[0].thumbUrl : '';
+    }
+    if (album.coverOriginal && selectedFilenames.some((fn) => album.coverOriginal.includes(fn))) {
+      album.coverOriginal = album.photos[0] ? album.photos[0].originalUrl : '';
+    }
+
+    selectedFilenames.forEach((fn) => {
+      recordDeletedPhoto(albumId, fn);
+    });
+    state.manageSelectedPhotos.clear();
+
+    saveCustomAlbums();
+
+    renderModalPhotosGrid();
+    renderAdminFolderTable();
+    populateUploadFolderDropdown();
+    renderDashboard();
+
+    if (state.currentAlbumId === albumId) {
+      applyFiltersAndSort();
+    }
+
+    showToast('Photos Deleted', `Successfully deleted ${selectedFilenames.length} photos from "${album.title}".`, '🗑️', 4000);
+
+    const token = getActiveToken();
+    if (token) {
+      const folderName = album.folder || album.title;
+      for (const fn of selectedFilenames) {
+        deleteFileFromGitHubBranch(token, 'main', `${folderName}/${fn}`, `chore: delete photo ${fn}`);
+        deleteFileFromGitHubBranch(token, 'main', `thumbnails/${folderName}/${fn}`, `chore: delete thumbnail ${fn}`);
+        deleteFileFromGitHubBranch(token, 'gh-pages', `thumbnails/${folderName}/${fn}`, `chore: delete thumbnail ${fn}`);
+      }
+    }
+  }
+
+  function switchToManagePhotosTab(albumId) {
+    if (!checkAdminAccess()) return;
+    populateManageFolderDropdown(albumId);
+    if (el.suiteTabBtns) {
+      el.suiteTabBtns.forEach((b) => b.classList.toggle('active', b.dataset.tab === 'photos'));
+    }
+    document.querySelectorAll('.suite-tab-content').forEach((tc) => {
+      tc.style.display = tc.id === 'tab-content-photos' ? 'block' : 'none';
+    });
+    renderModalPhotosGrid();
+  }
+
   // Expose admin actions globally for table buttons and header action
   window.galleryAdmin = {
     openAdmin: openAdminAuthModal,
     password: promptSetFolderPassword,
     rename: promptRenameFolder,
     delete: promptDeleteFolder,
+    managePhotos: switchToManagePhotosTab,
+    deletePhoto: (filename) => {
+      const albumId = state.currentAlbumId || 'suman';
+      promptDeleteSinglePhoto(albumId, filename);
+    },
   };
 
   // --- File Upload & ZIP Extraction Engine ---
@@ -3464,8 +3840,48 @@
           document.querySelectorAll('.suite-tab-content').forEach((tc) => {
             tc.style.display = tc.id === `tab-content-${target}` ? 'block' : 'none';
           });
+          if (target === 'photos') {
+            populateManageFolderDropdown();
+            renderModalPhotosGrid();
+          }
         });
       });
+    }
+
+    // Photo Management Listeners
+    if (el.manageTargetFolder) {
+      el.manageTargetFolder.addEventListener('change', () => {
+        state.manageSelectedPhotos.clear();
+        renderModalPhotosGrid();
+      });
+    }
+
+    if (el.managePhotoSearch) {
+      el.managePhotoSearch.addEventListener('input', () => {
+        renderModalPhotosGrid();
+      });
+    }
+
+    if (el.btnManageSelectAll) {
+      el.btnManageSelectAll.addEventListener('click', () => {
+        const albumId = el.manageTargetFolder ? el.manageTargetFolder.value : null;
+        const album = state.albums[albumId];
+        if (album && album.photos) {
+          album.photos.forEach((p) => state.manageSelectedPhotos.add(p.filename));
+          renderModalPhotosGrid();
+        }
+      });
+    }
+
+    if (el.btnManageDeselectAll) {
+      el.btnManageDeselectAll.addEventListener('click', () => {
+        state.manageSelectedPhotos.clear();
+        renderModalPhotosGrid();
+      });
+    }
+
+    if (el.btnManageDeleteSelected) {
+      el.btnManageDeleteSelected.addEventListener('click', promptDeleteBatchPhotos);
     }
 
     if (el.formCreateFolder) {
