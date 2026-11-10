@@ -96,12 +96,24 @@ def parse_photo_header(filepath, folder_name, filename, thumb_rel_path):
     disp_w = height if is_portrait else width
     disp_h = width if is_portrait else height
 
-    # Ensure thumbnail exists
+    # Ensure thumbnail exists and is not corrupt/empty/black (<30KB)
     thumb_full_path = os.path.join(BASE_DIR, thumb_rel_path)
-    if not os.path.exists(thumb_full_path):
+    if not os.path.exists(thumb_full_path) or os.path.getsize(thumb_full_path) < 30000:
         os.makedirs(os.path.dirname(thumb_full_path), exist_ok=True)
-        subprocess.run(['sips', '-Z', '1000', filepath, '--out', thumb_full_path],
+        # Two-step conversion prevents Apple MPF (Multi-Picture Format) JPEG auxiliary matte downsampling bug
+        tmp_clean = f"/tmp/clean_{os.path.basename(filepath)}.jpg"
+        subprocess.run(['sips', '-s', 'format', 'jpeg', filepath, '--out', tmp_clean],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists(tmp_clean):
+            subprocess.run(['sips', '-Z', '1000', tmp_clean, '--out', thumb_full_path],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                os.remove(tmp_clean)
+            except OSError:
+                pass
+        else:
+            subprocess.run(['sips', '-Z', '1000', filepath, '--out', thumb_full_path],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return {
         'filename': filename,
