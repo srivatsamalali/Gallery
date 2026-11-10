@@ -364,6 +364,12 @@
             <line x1="8" y1="11" x2="14" y2="11"></line>
           </svg>
         </button>
+        <!-- Admin Cover Photo Selection Toggle -->
+        <button class="lightbox-icon-btn" id="lb-admin-cover-btn" title="Admin: Set as Album Cover Photo" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </button>
         <button class="lightbox-icon-btn" id="lb-fav-btn" title="Like / Favorite this photo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -570,7 +576,7 @@
       <div class="suite-tabs">
         <button class="suite-tab-btn active" data-tab="folders">📁 Folders & Passwords</button>
         <button class="suite-tab-btn" data-tab="upload">📤 Upload Photos & ZIP (Direct to GitHub)</button>
-        <button class="suite-tab-btn" data-tab="photos">🖼️ Delete & Manage Photos</button>
+        <button class="suite-tab-btn" data-tab="photos">🖼️ Manage Photos & Cover</button>
       </div>
 
       <!-- Tab 1: Folders & Passwords -->
@@ -639,12 +645,14 @@
         </div>
       </div>
 
-      <!-- Tab 3: Delete & Manage Photos -->
+      <!-- Tab 3: Manage Photos & Select Cover Photo -->
       <div class="suite-tab-content" id="tab-content-photos" style="display: none;">
         <div class="suite-section-box">
+          <h4 class="box-title">Manage Photos & Select Album Cover</h4>
+          <p class="form-hint" style="margin-top:-6px; margin-bottom:14px;">Select any photo as the event album cover (marked with ★ Cover), or delete individual and batch photos.</p>
           <div class="photos-manage-toolbar">
             <div class="form-group flex-1">
-              <label class="form-label">Select Album to View & Delete Photos:</label>
+              <label class="form-label">Select Album to View, Set Cover & Delete:</label>
               <select id="manage-target-folder" class="form-input">
                 <!-- Populated dynamically -->
               </select>
