@@ -1020,7 +1020,7 @@
     renderFilmstrip();
 
     el.lightbox.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    syncBodyModalState();
 
     // Deep link URL hash update
     const photo = state.filteredPhotos[index];
@@ -1037,7 +1037,7 @@
     if (el.lbAmbientGlow) el.lbAmbientGlow.style.opacity = '0';
     el.lightbox.classList.remove('active');
     el.lightbox.classList.remove('immersive');
-    document.body.style.overflow = '';
+    syncBodyModalState();
     resetZoom();
 
     // Clean hash on close
@@ -1106,15 +1106,18 @@
       el.lbImg.classList.remove('ken-burns');
     }
 
-    // Progressive upgrade to full original if viewer zooms or image finishes
-    const fullImg = new Image();
-    fullImg.src = getOriginalUrl(photo);
-    fullImg.onload = () => {
-      // If still on the same photo, upgrade image source seamlessly
-      if (state.lightboxOpen && state.filteredPhotos[state.currentIndex]?.filename === photo.filename) {
-        el.lbImg.src = fullImg.src;
-      }
-    };
+    // Progressive upgrade to full original if viewer zooms or image finishes (skips raw DNG which cannot decode in browser <img>)
+    const isRawFormat = (photo.filename || '').toUpperCase().endsWith('.DNG') || (photo.filename || '').toUpperCase().endsWith('.RAW');
+    if (!isRawFormat) {
+      const fullImg = new Image();
+      fullImg.src = getOriginalUrl(photo);
+      fullImg.onload = () => {
+        // If still on the same photo, upgrade image source seamlessly
+        if (state.lightboxOpen && state.filteredPhotos[state.currentIndex]?.filename === photo.filename) {
+          el.lbImg.src = fullImg.src;
+        }
+      };
+    }
 
     el.lbImg.onload = () => {
       el.lbImg.style.opacity = '1';
@@ -1168,7 +1171,7 @@
       return;
     }
     el.lbAdminCoverBtn.style.display = 'inline-flex';
-    const albumId = state.currentAlbumId || photo.folder?.toLowerCase().replace(/[\W_]+/g, '-') || 'suman';
+    const albumId = state.currentAlbumId || (photo.folder ? photo.folder.toLowerCase().replace(/[\W_]+/g, '-') : (photo.originalUrl ? photo.originalUrl.split('/')[0].toLowerCase().replace(/[\W_]+/g, '-') : Object.keys(state.albums)[0]));
     const album = state.albums[albumId];
     const isCover = album && (
       (album.coverThumb && album.coverThumb.includes(photo.filename)) ||
@@ -1460,6 +1463,7 @@
   function loadCustomAlbums() {
     try {
       const deletedIds = getDeletedAlbumIds();
+      const deletedPhotoKeys = getDeletedPhotoKeys();
 
       // One-time auto-purge for phantom pre-wedding duplicates and removed folders
       deletedIds.add('pre-wedding-shoot');
@@ -1480,7 +1484,6 @@
       });
 
       const stored = localStorage.getItem('gallery_custom_albums');
-      const deletedPhotoKeys = getDeletedPhotoKeys();
       if (stored) {
         const parsed = JSON.parse(stored);
         const sanitized = sanitizeAlbumsForStorage(parsed);
@@ -1489,24 +1492,48 @@
             delete state.albums[id];
             return;
           }
-          // Authoritative manifest in photos-data.js supersedes stale local storage
-          if (typeof ALBUMS_DATA !== 'undefined' && ALBUMS_DATA[id] && Array.isArray(ALBUMS_DATA[id].photos)) {
-            sanitized[id].photos = ALBUMS_DATA[id].photos;
-            sanitized[id].photoCount = ALBUMS_DATA[id].photos.length;
-            sanitized[id].totalSizeBytes = ALBUMS_DATA[id].totalSizeBytes || 0;
-            sanitized[id].totalSizeFormatted = ALBUMS_DATA[id].totalSizeFormatted || '0 MB';
-            sanitized[id].portraitsCount = ALBUMS_DATA[id].portraitsCount || 0;
-            sanitized[id].landscapesCount = ALBUMS_DATA[id].landscapesCount || 0;
-            if (sanitized[id].photoCount === 0) {
-              sanitized[id].coverThumb = '';
-              sanitized[id].coverOriginal = '';
-              sanitized[id].status = 'upcoming';
+          const staticPhotos = (typeof ALBUMS_DATA !== 'undefined' && ALBUMS_DATA[id] && Array.isArray(ALBUMS_DATA[id].photos))
+            ? ALBUMS_DATA[id].photos
+            : [];
+          const localPhotos = Array.isArray(sanitized[id].photos) ? sanitized[id].photos : [];
+
+          // Merge static manifest photos and local uploads by unique filename
+          const mergedMap = new Map();
+          staticPhotos.forEach((p) => {
+            if (p && p.filename && !deletedPhotoKeys.has(`${id}:${p.filename}`)) {
+              mergedMap.set(p.filename, p);
+            }
+          });
+          localPhotos.forEach((p) => {
+            if (p && p.filename && !deletedPhotoKeys.has(`${id}:${p.filename}`)) {
+              if (!mergedMap.has(p.filename)) {
+                mergedMap.set(p.filename, p);
+              }
+            }
+          });
+
+          const mergedPhotos = Array.from(mergedMap.values());
+          sanitized[id].photos = mergedPhotos;
+          sanitized[id].photoCount = mergedPhotos.length;
+          sanitized[id].totalSizeBytes = mergedPhotos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
+          sanitized[id].totalSizeFormatted = formatBytes(sanitized[id].totalSizeBytes);
+          sanitized[id].portraitsCount = mergedPhotos.filter((p) => p.isPortrait).length;
+          sanitized[id].landscapesCount = mergedPhotos.length - sanitized[id].portraitsCount;
+
+          if (sanitized[id].photoCount === 0) {
+            sanitized[id].coverThumb = '';
+            sanitized[id].coverOriginal = '';
+            sanitized[id].status = 'upcoming';
+          } else {
+            sanitized[id].status = 'active';
+            if (!sanitized[id].coverThumb || sanitized[id].coverThumb.startsWith('blob:')) {
+              sanitized[id].coverThumb = mergedPhotos[0].thumbUrl || mergedPhotos[0].originalUrl;
+            }
+            if (!sanitized[id].coverOriginal || sanitized[id].coverOriginal.startsWith('blob:')) {
+              sanitized[id].coverOriginal = mergedPhotos[0].originalUrl;
             }
           }
-          if (sanitized[id].photos && Array.isArray(sanitized[id].photos)) {
-            sanitized[id].photos = sanitized[id].photos.filter((p) => !deletedPhotoKeys.has(`${id}:${p.filename}`));
-            sanitized[id].photoCount = sanitized[id].photos.length;
-          }
+
           state.albums[id] = Object.assign(state.albums[id] || {}, sanitized[id]);
         });
       }
@@ -1898,6 +1925,7 @@
     if (el.adminAuthError) el.adminAuthError.style.display = 'none';
     if (el.unauthorizedAlertBox) el.unauthorizedAlertBox.style.display = 'none';
     if (el.adminAuthModal) el.adminAuthModal.style.display = 'flex';
+    syncBodyModalState();
     setTimeout(() => el.adminAuthPasscode?.focus(), 100);
   }
 
@@ -1959,10 +1987,32 @@
     }
   }
 
+  // --- Global Modal Scroll Lock Controller ---
+  function syncBodyModalState() {
+    const isAnyModalOpen =
+      (el.lightbox && el.lightbox.classList.contains('active')) ||
+      (el.adminAuthModal && el.adminAuthModal.style.display !== 'none' && el.adminAuthModal.style.display !== '') ||
+      (el.adminSuiteModal && el.adminSuiteModal.style.display !== 'none' && el.adminSuiteModal.style.display !== '') ||
+      (el.passwordModal && el.passwordModal.style.display !== 'none' && el.passwordModal.style.display !== '') ||
+      (el.uploadProgressModal && el.uploadProgressModal.style.display !== 'none' && el.uploadProgressModal.style.display !== '') ||
+      (document.getElementById('action-popup-modal') && document.getElementById('action-popup-modal').style.display !== 'none' && document.getElementById('action-popup-modal').style.display !== '');
+
+    if (isAnyModalOpen) {
+      document.body.classList.add('modal-open');
+      document.documentElement.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
+    }
+  }
+
   function handleAdminLogout() {
     clearAdminVerified();
     if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'none';
+    if (el.adminAuthModal) el.adminAuthModal.style.display = 'none';
+    syncBodyModalState();
     updateAdminAuthUI();
+    renderDashboard();
     showToast('Logged Out', 'Admin session terminated. Passcode required to enter again.', '🔒', 3500);
   }
 
@@ -2132,6 +2182,7 @@
     renderModalPhotosGrid();
     if (el.ghTokenInput) el.ghTokenInput.value = localStorage.getItem('gh_token') || '';
     if (el.adminSuiteModal) el.adminSuiteModal.style.display = 'flex';
+    syncBodyModalState();
   }
 
   function populateUploadFolderDropdown() {
@@ -2596,7 +2647,7 @@
     });
 
     if (!preselectedAlbumId && albums.length > 0) {
-      const targetId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : albums[0].id);
+      const targetId = state.currentAlbumId || (albums.length > 0 ? albums[0].id : Object.keys(state.albums)[0]);
       el.manageTargetFolder.value = targetId;
     }
   }
@@ -2956,11 +3007,11 @@
       }
     },
     setCover: (filename) => {
-      const albumId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : Object.keys(state.albums)[0]);
+      const albumId = state.currentAlbumId || (state.filteredPhotos[state.currentIndex]?.folder?.toLowerCase().replace(/[\W_]+/g, '-')) || Object.keys(state.albums)[0];
       setAlbumCoverPhoto(albumId, filename);
     },
     deletePhoto: (filename) => {
-      const albumId = state.currentAlbumId || (state.albums['suman'] ? 'suman' : Object.keys(state.albums)[0]);
+      const albumId = state.currentAlbumId || (state.filteredPhotos[state.currentIndex]?.folder?.toLowerCase().replace(/[\W_]+/g, '-')) || Object.keys(state.albums)[0];
       promptDeleteSinglePhoto(albumId, filename);
     },
   };
@@ -2972,7 +3023,7 @@
       if (file.name.toLowerCase().endsWith('.zip')) {
         showToast('Extracting ZIP', `Unpacking "${file.name}"...`, '📦', 3000);
         await extractZipFile(file);
-      } else if (file.type.startsWith('image/')) {
+      } else if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|dng|raw|heic)$/i.test(file.name)) {
         stageFile(file);
       }
     }
@@ -2990,7 +3041,7 @@
       let count = 0;
       for (const name of fileNames) {
         const entry = zip.files[name];
-        if (!entry.dir && !name.startsWith('__MACOSX') && /\.(jpe?g|png|webp)$/i.test(name)) {
+        if (!entry.dir && !name.startsWith('__MACOSX') && /\.(jpe?g|png|webp|dng|raw|heic)$/i.test(name)) {
           const blob = await entry.async('blob');
           const cleanName = name.split('/').pop();
           const imgFile = new File([blob], cleanName, { type: blob.type || 'image/jpeg' });
@@ -3968,7 +4019,7 @@
       el.lbAdminCoverBtn.addEventListener('click', () => {
         const photo = state.filteredPhotos[state.currentIndex];
         if (!photo) return;
-        const albumId = state.currentAlbumId || (photo.folder ? photo.folder.toLowerCase().replace(/[\W_]+/g, '-') : 'suman');
+        const albumId = state.currentAlbumId || (photo.folder ? photo.folder.toLowerCase().replace(/[\W_]+/g, '-') : (photo.originalUrl ? photo.originalUrl.split('/')[0].toLowerCase().replace(/[\W_]+/g, '-') : Object.keys(state.albums)[0]));
         setAlbumCoverPhoto(albumId, photo.filename);
       });
     }
@@ -4222,6 +4273,7 @@
       const liveAlbums = JSON.parse(match[1]);
       let changed = false;
       const deletedIds = getDeletedAlbumIds();
+      const deletedPhotoKeys = getDeletedPhotoKeys();
 
       // 1. Prune phantom duplicate pre-wedding folders and purged folders
       ['pre-wedding-shoot', 'pre-wedding-photoshoot', 'usha', 'gulbarga'].forEach((phantomId) => {
@@ -4247,15 +4299,57 @@
         if (!current) {
           state.albums[id] = live;
           changed = true;
-        } else if (
-          (live.photos?.length || 0) !== (current.photos?.length || 0) ||
-          live.title !== current.title ||
-          live.status !== current.status ||
-          live.coverThumb !== current.coverThumb ||
-          live.isPasswordProtected !== current.isPasswordProtected
-        ) {
-          state.albums[id] = Object.assign(current, live);
-          changed = true;
+        } else {
+          // Merge photos by unique filename so local uploads are never wiped out by stale CDN manifests
+          const currentPhotos = Array.isArray(current.photos) ? current.photos : [];
+          const livePhotos = Array.isArray(live.photos) ? live.photos : [];
+          const currentMap = new Map();
+          currentPhotos.forEach((p) => {
+            if (p && p.filename) currentMap.set(p.filename, p);
+          });
+
+          let newPhotosCount = 0;
+          livePhotos.forEach((p) => {
+            if (p && p.filename && !deletedPhotoKeys.has(`${id}:${p.filename}`)) {
+              if (!currentMap.has(p.filename)) {
+                currentMap.set(p.filename, p);
+                newPhotosCount++;
+              } else {
+                const existing = currentMap.get(p.filename);
+                // Upgrade thumbnail if remote has generated a real thumbnail instead of blob or originalUrl
+                if (!existing.thumbUrl || existing.thumbUrl.startsWith('blob:') || existing.thumbUrl === existing.originalUrl) {
+                  if (p.thumbUrl && !p.thumbUrl.startsWith('blob:') && p.thumbUrl !== p.originalUrl) {
+                    existing.thumbUrl = p.thumbUrl;
+                    changed = true;
+                  }
+                }
+              }
+            }
+          });
+
+          const mergedPhotos = Array.from(currentMap.values());
+          if (newPhotosCount > 0 || mergedPhotos.length !== currentPhotos.length) {
+            current.photos = mergedPhotos;
+            current.photoCount = mergedPhotos.length;
+            current.totalSizeBytes = mergedPhotos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
+            current.totalSizeFormatted = formatBytes(current.totalSizeBytes);
+            current.portraitsCount = mergedPhotos.filter((p) => p.isPortrait).length;
+            current.landscapesCount = mergedPhotos.length - current.portraitsCount;
+            if (mergedPhotos.length > 0 && (!current.coverThumb || current.coverThumb.startsWith('blob:'))) {
+              current.coverThumb = mergedPhotos[0].thumbUrl || mergedPhotos[0].originalUrl;
+            }
+            changed = true;
+          }
+
+          if (live.title && live.title !== current.title) {
+            current.title = live.title;
+            changed = true;
+          }
+          if (live.isPasswordProtected !== undefined && live.isPasswordProtected !== current.isPasswordProtected) {
+            current.isPasswordProtected = live.isPasswordProtected;
+            current.passwordHash = live.passwordHash;
+            changed = true;
+          }
         }
       });
 
@@ -4291,6 +4385,15 @@
     initEvents();
     updateAdminAuthUI();
     handleUrlHash();
+
+    // Automatically lock background scrolling whenever any modal or lightbox is active
+    syncBodyModalState();
+    const modalObserver = new MutationObserver(() => {
+      syncBodyModalState();
+    });
+    document.querySelectorAll('.custom-modal-backdrop, #lightbox').forEach((m) => {
+      modalObserver.observe(m, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
 
     // Check for fresh live manifest immediately on load
     refreshManifestFromLiveNetwork(true);

@@ -20,7 +20,7 @@ IGNORE_DIRS = {
     'thumbnails', '.git', '.github', 'node_modules', '__pycache__', '.system_generated'
 }
 
-VALID_EXTENSIONS = ('.JPG', '.JPEG', '.PNG', '.WEBP')
+VALID_EXTENSIONS = ('.JPG', '.JPEG', '.PNG', '.WEBP', '.DNG')
 
 def slugify(text):
     return re.sub(r'[\W_]+', '-', text.lower()).strip('-')
@@ -33,68 +33,90 @@ def parse_photo_header(filepath, folder_name, filename, thumb_rel_path):
     date_str = None
     camera_model = "Nikon Z6 III"
 
-    with open(filepath, 'rb') as f:
-        data = f.read(65536)
-        # Parse dimensions from JPEG SOF
-        idx = 2
-        while idx < len(data) - 8:
-            if data[idx] != 0xff:
-                idx += 1
-                continue
-            marker = data[idx+1]
-            if marker in (0xc0, 0xc2):
-                h, w = struct.unpack('>HH', data[idx+5:idx+9])
-                width, height = w, h
-                break
-            elif marker in (0xd9, 0xda):
-                break
-            else:
-                length = struct.unpack('>H', data[idx+2:idx+4])[0]
-                idx += 2 + length
+    if filename.upper().endswith('.DNG'):
+        try:
+            res = subprocess.run(['sips', '-g', 'pixelWidth', '-g', 'pixelHeight', '-g', 'model', '-g', 'creation', filepath],
+                                 capture_output=True, text=True)
+            for line in res.stdout.splitlines():
+                if 'pixelWidth:' in line:
+                    width = int(line.split(':')[1].strip())
+                elif 'pixelHeight:' in line:
+                    height = int(line.split(':')[1].strip())
+                elif 'model:' in line:
+                    m = line.split(':')[1].strip()
+                    if m:
+                        camera_model = m
+                elif 'creation:' in line:
+                    c = line.split('creation:')[1].strip()
+                    if c:
+                        date_str = c
+        except Exception:
+            pass
+    else:
+        with open(filepath, 'rb') as f:
+            data = f.read(65536)
+            # Parse dimensions from JPEG SOF
+            idx = 2
+            while idx < len(data) - 8:
+                if data[idx] != 0xff:
+                    idx += 1
+                    continue
+                marker = data[idx+1]
+                if marker in (0xc0, 0xc2):
+                    h, w = struct.unpack('>HH', data[idx+5:idx+9])
+                    width, height = w, h
+                    break
+                elif marker in (0xd9, 0xda):
+                    break
+                else:
+                    length = struct.unpack('>H', data[idx+2:idx+4])[0]
+                    idx += 2 + length
 
-        # Parse EXIF metadata
-        exif_idx = data.find(b'Exif\x00\x00')
-        if exif_idx != -1:
-            tiff_data = data[exif_idx+6:]
-            if len(tiff_data) > 14:
-                endian = tiff_data[:2]
-                fmt = '<' if endian == b'II' else '>'
-                try:
-                    first_ifd = struct.unpack(fmt + 'I', tiff_data[4:8])[0]
-                    if len(tiff_data) >= first_ifd + 2:
-                        num_entries = struct.unpack(fmt + 'H', tiff_data[first_ifd:first_ifd+2])[0]
-                        exif_sub_ifd_offset = None
-                        for i in range(num_entries):
-                            entry_offset = first_ifd + 2 + i * 12
-                            if len(tiff_data) >= entry_offset + 10:
-                                tag = struct.unpack(fmt + 'H', tiff_data[entry_offset:entry_offset+2])[0]
-                                if tag == 0x0112:
-                                    orientation = struct.unpack(fmt + 'H', tiff_data[entry_offset+8:entry_offset+10])[0]
-                                elif tag == 0x0110: # Model
-                                    val_offset = struct.unpack(fmt + 'I', tiff_data[entry_offset+8:entry_offset+12])[0]
-                                    raw_model = tiff_data[val_offset:val_offset+16].decode('ascii', errors='ignore')
-                                    clean_model = raw_model.split('\x00')[0].strip()
-                                    if 'Z6_3' in clean_model:
-                                        camera_model = 'Nikon Z6 III'
-                                    elif clean_model:
-                                        camera_model = clean_model
-                                elif tag == 0x8769:
-                                    exif_sub_ifd_offset = struct.unpack(fmt + 'I', tiff_data[entry_offset+8:entry_offset+12])[0]
-                        if exif_sub_ifd_offset and len(tiff_data) >= exif_sub_ifd_offset + 2:
-                            sub_entries = struct.unpack(fmt + 'H', tiff_data[exif_sub_ifd_offset:exif_sub_ifd_offset+2])[0]
-                            for i in range(sub_entries):
-                                entry_offset = exif_sub_ifd_offset + 2 + i * 12
-                                tag = struct.unpack(fmt + 'H', tiff_data[entry_offset:entry_offset+2])[0]
-                                if tag in (0x9003, 0x9004):
-                                    val_offset = struct.unpack(fmt + 'I', tiff_data[entry_offset+8:entry_offset+12])[0]
-                                    date_str = tiff_data[val_offset:val_offset+19].decode('ascii', errors='ignore')
-                                    break
-                except Exception:
-                    pass
+            # Parse EXIF metadata
+            exif_idx = data.find(b'Exif\x00\x00')
+            if exif_idx != -1:
+                tiff_data = data[exif_idx+6:]
+                if len(tiff_data) > 14:
+                    endian = tiff_data[:2]
+                    fmt = '<' if endian == b'II' else '>'
+                    try:
+                        first_ifd = struct.unpack(fmt + 'I', tiff_data[4:8])[0]
+                        if len(tiff_data) >= first_ifd + 2:
+                            num_entries = struct.unpack(fmt + 'H', tiff_data[first_ifd:first_ifd+2])[0]
+                            exif_sub_ifd_offset = None
+                            for i in range(num_entries):
+                                entry_offset = first_ifd + 2 + i * 12
+                                if len(tiff_data) >= entry_offset + 10:
+                                    tag = struct.unpack(fmt + 'H', tiff_data[entry_offset:entry_offset+2])[0]
+                                    if tag == 0x0112:
+                                        orientation = struct.unpack(fmt + 'H', tiff_data[entry_offset+8:entry_offset+10])[0]
+                                    elif tag == 0x0110: # Model
+                                        val_offset = struct.unpack(fmt + 'I', tiff_data[entry_offset+8:entry_offset+12])[0]
+                                        raw_model = tiff_data[val_offset:val_offset+16].decode('ascii', errors='ignore')
+                                        clean_model = raw_model.split('\x00')[0].strip()
+                                        if 'Z6_3' in clean_model:
+                                            camera_model = 'Nikon Z6 III'
+                                        elif clean_model:
+                                            camera_model = clean_model
+                                    elif tag == 0x8769:
+                                        exif_sub_ifd_offset = struct.unpack(fmt + 'I', tiff_data[entry_offset+8:entry_offset+12])[0]
+                            if exif_sub_ifd_offset and len(tiff_data) >= exif_sub_ifd_offset + 2:
+                                sub_entries = struct.unpack(fmt + 'H', tiff_data[exif_sub_ifd_offset:exif_sub_ifd_offset+2])[0]
+                                for i in range(sub_entries):
+                                    entry_offset = exif_sub_ifd_offset + 2 + i * 12
+                                    tag = struct.unpack(fmt + 'H', tiff_data[entry_offset:entry_offset+2])[0]
+                                    if tag in (0x9003, 0x9004):
+                                        val_offset = struct.unpack(fmt + 'I', tiff_data[entry_offset+8:entry_offset+12])[0]
+                                        date_str = tiff_data[val_offset:val_offset+19].decode('ascii', errors='ignore')
+                                        break
+                    except Exception:
+                        pass
 
-    is_portrait = orientation in (5, 6, 7, 8)
-    disp_w = height if is_portrait else width
-    disp_h = width if is_portrait else height
+    if orientation in (5, 6, 7, 8):
+        disp_w, disp_h = height, width
+    else:
+        disp_w, disp_h = width, height
+    is_portrait = disp_h > disp_w
 
     # Ensure thumbnail exists and is not corrupt/empty/black (<30KB)
     thumb_full_path = os.path.join(BASE_DIR, thumb_rel_path)
@@ -112,7 +134,7 @@ def parse_photo_header(filepath, folder_name, filename, thumb_rel_path):
             except OSError:
                 pass
         else:
-            subprocess.run(['sips', '-Z', '1000', filepath, '--out', thumb_full_path],
+            subprocess.run(['sips', '-s', 'format', 'jpeg', filepath, '-Z', '1000', '--out', thumb_full_path],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return {
@@ -189,10 +211,13 @@ def scan_albums():
         print(f'Found Album Folder "{entry}": {len(files)} photos')
 
         def process_one(filename):
+            thumb_filename = filename
+            if filename.upper().endswith('.DNG'):
+                thumb_filename = os.path.splitext(filename)[0] + '.jpg'
             if entry == 'Baby Showers' and os.path.exists(os.path.join(THUMBS_ROOT, filename)):
                 thumb_rel = f'thumbnails/{filename}'
             else:
-                thumb_rel = f'thumbnails/{entry}/{filename}'
+                thumb_rel = f'thumbnails/{entry}/{thumb_filename}'
             src = os.path.join(full_path, filename)
             return parse_photo_header(src, entry, filename, thumb_rel)
 

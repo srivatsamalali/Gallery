@@ -105,7 +105,7 @@
               <span class="admin-gear-icon">⚙️</span>
               <span>Manage Folders & Uploads</span>
             </button>
-            <button type="button" id="btn-admin-logout" class="btn-admin-logout" style="display: none;" title="Log Out of Admin Mode">
+            <button type="button" id="btn-admin-logout" class="btn-admin-logout" style="display: none;" title="Log Out of Admin Mode" onclick="window.galleryAdmin && window.galleryAdmin.logout ? window.galleryAdmin.logout() : null">
               <span>🚪 Log Out</span>
             </button>
           </div>
@@ -565,7 +565,7 @@
           <h2 class="suite-title">Folder Management & Upload Portal</h2>
         </div>
         <div class="suite-header-actions">
-          <button type="button" id="admin-suite-logout" class="btn-suite-logout" title="Log Out from Admin Session">
+          <button type="button" id="admin-suite-logout" class="btn-suite-logout" title="Log Out from Admin Session" onclick="window.galleryAdmin && window.galleryAdmin.logout ? window.galleryAdmin.logout() : null">
             <span>🚪 Log Out</span>
           </button>
           <button type="button" id="admin-suite-close" class="modal-close-x" title="Close">✕</button>
