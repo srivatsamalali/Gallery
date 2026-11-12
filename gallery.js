@@ -617,6 +617,13 @@
   // --- Gallery Rendering with Chunked Infinite Scroll ---
   let infiniteScrollObserver = null;
 
+  function getMasonryColumnCount() {
+    const w = window.innerWidth;
+    if (w <= 860) return 2;
+    if (w <= 1300) return 3;
+    return 4;
+  }
+
   function renderGallery(reset = true) {
     const container = el.galleryContainer;
     if (!container) return;
@@ -654,16 +661,48 @@
     // Layout class
     container.className = `gallery-container layout-${state.layout}`;
 
-    const fragment = document.createDocumentFragment();
-    const startIndex = reset ? 0 : container.children.length;
+    const startIndex = reset ? 0 : container.querySelectorAll('.photo-card').length;
     const currentSlice = state.filteredPhotos.slice(startIndex, state.renderedCount);
 
-    currentSlice.forEach((photo, i) => {
-      const card = createPhotoCard(photo, startIndex + i);
-      fragment.appendChild(card);
-    });
+    if (state.layout === 'masonry') {
+      let cols = Array.from(container.querySelectorAll('.masonry-col'));
+      const colCount = getMasonryColumnCount();
 
-    container.appendChild(fragment);
+      if (reset || cols.length !== colCount) {
+        container.innerHTML = '';
+        cols = [];
+        for (let c = 0; c < colCount; c++) {
+          const colDiv = document.createElement('div');
+          colDiv.className = 'masonry-col';
+          container.appendChild(colDiv);
+          cols.push(colDiv);
+        }
+      }
+
+      // Track estimated height of each column for optimal vertical packing without layout shifts
+      const colHeights = cols.map((col) => {
+        let h = 0;
+        col.querySelectorAll('.photo-card').forEach((c) => {
+          h += c.offsetHeight || 250;
+        });
+        return h;
+      });
+
+      currentSlice.forEach((photo, i) => {
+        const card = createPhotoCard(photo, startIndex + i);
+        const minIdx = colHeights.indexOf(Math.min(...colHeights));
+        cols[minIdx].appendChild(card);
+        const estimatedCardHeight = 300 / (photo.aspectRatio || 1.5);
+        colHeights[minIdx] += estimatedCardHeight + 20;
+      });
+    } else {
+      const fragment = document.createDocumentFragment();
+      currentSlice.forEach((photo, i) => {
+        const card = createPhotoCard(photo, startIndex + i);
+        fragment.appendChild(card);
+      });
+      container.appendChild(fragment);
+    }
 
     // Setup intersection observer for scroll reveal
     setupScrollReveal();
@@ -4708,6 +4747,22 @@
         }
       });
     }
+
+    // Debounced Masonry Column Rebalancer on window resize
+    let masonryResizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(masonryResizeTimer);
+      masonryResizeTimer = setTimeout(() => {
+        if (state.layout === 'masonry' && el.albumView && el.albumView.style.display !== 'none') {
+          const cols = el.galleryContainer ? el.galleryContainer.querySelectorAll('.masonry-col') : [];
+          if (cols.length > 0 && cols.length !== getMasonryColumnCount()) {
+            const currentCount = state.renderedCount;
+            renderGallery(true);
+            state.renderedCount = currentCount;
+          }
+        }
+      }, 200);
+    });
 
     // Backdrop dismissal
     window.addEventListener('click', (e) => {
