@@ -1802,46 +1802,55 @@ select.action-btn:focus,
 
 /* Gallery Grid Layouts */
 
-/* 1. Masonry Layout (Default - Stable Row-First Responsive Grid) */
+/* 1. Masonry Layout (True Column Flexbox - Zero Gaps & Zero Mobile Shuffling) */
 .gallery-container.layout-masonry {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  grid-template-rows: masonry;
+  display: flex !important;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
   gap: 20px;
-  align-items: start;
+  width: 100%;
+}
+
+.masonry-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 @media (max-width: 1300px) {
   .gallery-container.layout-masonry {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .masonry-col {
     gap: 16px;
   }
 }
 
 @media (max-width: 860px) {
   .gallery-container.layout-masonry {
-    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
-  .gallery-container.layout-masonry .photo-card {
-    margin-bottom: 0;
+  .masonry-col {
+    gap: 10px;
   }
 }
 
 @media (max-width: 480px) {
   .gallery-container.layout-masonry {
-    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
-  .gallery-container.layout-masonry .photo-card {
-    margin-bottom: 0;
-    border-radius: var(--radius-sm);
+  .masonry-col {
+    gap: 8px;
   }
 }
 
 .gallery-container.layout-masonry .photo-card {
-  break-inside: avoid;
+  width: 100%;
   margin-bottom: 0;
+  break-inside: avoid;
 }
 
 /* 2. Uniform Grid Layout */
