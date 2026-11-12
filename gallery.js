@@ -326,6 +326,52 @@
   const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/srivatsamalali/Gallery/main';
   const THUMB_VERSION = 'v=20261110_1815';
 
+  // --- Smart Camera Model Detection (Google Pixel, iPhone, Nikon, etc.) ---
+  function getPhotoCamera(photo) {
+    if (!photo) return 'Digital Camera';
+    const rawCam = (photo.camera || '').trim();
+    const fn = (photo.filename || '').toUpperCase();
+    const folder = (photo.folder || '').toUpperCase();
+
+    // 1. Filename is unmistakable Google Pixel signature:
+    if (fn.startsWith('PXL_') || fn.includes('PIXEL') || fn.includes('_PXL')) {
+      return 'Google Pixel';
+    }
+
+    // 2. iPhone signature:
+    if ((fn.startsWith('IMG_') || fn.startsWith('FULLSIZE_')) && !fn.startsWith('DSC_') && (folder.includes('SUMAN') || folder.includes('PHONE') || rawCam.includes('iPhone'))) {
+      return rawCam.includes('iPhone') ? rawCam : 'Apple iPhone';
+    }
+
+    // 3. Samsung Galaxy signature:
+    if (/^\d{8}_\d{6}/.test(fn) || fn.startsWith('SAM_') || fn.startsWith('SEC_')) {
+      return 'Samsung Galaxy';
+    }
+
+    // 4. Genuine camera model if already set and not a generic inaccurate fallback:
+    if (rawCam && rawCam !== 'Original DSLR' && rawCam !== 'DSLR' && rawCam !== 'Digital Camera') {
+      if (rawCam === 'Nikon Z6 III' && (fn.startsWith('PXL_') || fn.includes('PIXEL'))) {
+        return 'Google Pixel';
+      }
+      if (fn.startsWith('DSC_')) {
+        return 'Nikon Z6 III';
+      }
+      return rawCam;
+    }
+
+    // 5. Default original shoot:
+    if (fn.startsWith('DSC_') || folder.includes('BABY SHOWERS') || folder.includes('SRIVATSA')) {
+      return 'Nikon Z6 III';
+    }
+
+    // 6. Generic uploaded photo fallback:
+    if (photo.aspectRatio && Math.abs(photo.aspectRatio - 1.333) < 0.05) {
+      return 'Mobile Camera';
+    }
+
+    return 'High Fidelity Original';
+  }
+
   function getOriginalUrl(photo) {
     if (!photo) return '';
     if (window.location.hostname.endsWith('github.io')) {
@@ -345,16 +391,64 @@
     return `${cleanThumb}${sep}${THUMB_VERSION}`;
   }
 
+  function getAlbumCoverUrl(album) {
+    if (!album) return '';
+    let cover = album.coverThumb || album.coverOriginal;
+    if (!cover || cover.startsWith('blob:')) {
+      if (album.photos && album.photos.length > 0) {
+        cover = album.photos[0].thumbUrl || album.photos[0].originalUrl || '';
+      }
+    }
+    if (!cover || cover.startsWith('blob:')) return '';
+
+    let clean = cover.replace(/^\/+/, '').split('?')[0];
+    try {
+      clean = decodeURIComponent(clean);
+    } catch (e) {}
+
+    // If pre-generated thumbnail:
+    if (clean.startsWith('thumbnails/')) {
+      const sep = clean.includes('?') ? '&' : '?';
+      return `${encodeURI(clean)}${sep}${THUMB_VERSION}`;
+    }
+
+    // Direct repository file (e.g. Madilu tumbo program - Gulbarga/IMG_...):
+    return `${GITHUB_RAW_BASE}/${encodeURI(clean)}`;
+  }
+
   // --- Robust Global Error Handlers for Images (Safari, Mobile & Instant Raw Sync) ---
-  window.handleCoverImgError = function(img, isWedding, fallbackPath) {
+  window.handleCoverImgError = function(img, isWedding, fallbackPath, albumId) {
     if (!img) return;
-    const cleanPath = (fallbackPath || '').replace(/^\/+/, '').split('?')[0];
+
+    let cleanPath = '';
+    try {
+      cleanPath = decodeURIComponent(fallbackPath || '').replace(/^\/+/, '').split('?')[0];
+    } catch (e) {
+      cleanPath = (fallbackPath || '').replace(/^\/+/, '').split('?')[0];
+    }
+
+    // Stage 1: Try GITHUB_RAW_BASE with clean URI encoding (avoiding double %2520 encoding)
     if (cleanPath && !img.dataset.triedRaw && !cleanPath.startsWith('blob:')) {
       img.dataset.triedRaw = 'true';
       img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanPath)}`;
       return;
     }
 
+    // Stage 2: Try first photo of this album before showing placeholder
+    if (albumId && state.albums && state.albums[albumId] && !img.dataset.triedAlbumFirst) {
+      img.dataset.triedAlbumFirst = 'true';
+      const alb = state.albums[albumId];
+      if (alb.photos && alb.photos.length > 0) {
+        const firstPhoto = alb.photos[0];
+        const firstUrl = getThumbUrl(firstPhoto) || getOriginalUrl(firstPhoto);
+        if (firstUrl && firstUrl !== img.src) {
+          img.src = firstUrl;
+          return;
+        }
+      }
+    }
+
+    // Stage 3: Placeholder only if all above fail
     img.onerror = null;
     const parent = img.parentElement;
     if (!parent) return;
@@ -765,11 +859,15 @@
 
     const isFav = state.favorites.has(photo.filename);
     const aspect = photo.displayWidth && photo.displayHeight ? (photo.displayWidth / photo.displayHeight).toFixed(3) : 1.5;
+    const cameraName = getPhotoCamera(photo);
+    photo.camera = cameraName;
 
     const currentAlbum = state.albums[state.currentAlbumId];
+    const cleanCoverThumb = currentAlbum && currentAlbum.coverThumb ? decodeURIComponent(currentAlbum.coverThumb) : '';
+    const cleanCoverOrig = currentAlbum && currentAlbum.coverOriginal ? decodeURIComponent(currentAlbum.coverOriginal) : '';
     const isCover = !!currentAlbum && (
-      (currentAlbum.coverThumb && currentAlbum.coverThumb.includes(photo.filename)) ||
-      (currentAlbum.coverOriginal && currentAlbum.coverOriginal.includes(photo.filename)) ||
+      (cleanCoverThumb && cleanCoverThumb.includes(photo.filename)) ||
+      (cleanCoverOrig && cleanCoverOrig.includes(photo.filename)) ||
       currentAlbum.coverThumb === photo.thumbUrl ||
       currentAlbum.coverOriginal === photo.originalUrl
     );
@@ -845,7 +943,7 @@
             <div class="card-title-wrap">
               ${peopleBadgesHtml ? `<div class="card-people-chips">${peopleBadgesHtml}</div>` : ''}
               <div class="card-photo-name">${photo.title}</div>
-              <div class="card-photo-meta">${photo.sizeFormatted} • ${photo.width} × ${photo.height} • ${photo.camera}</div>
+              <div class="card-photo-meta">${photo.sizeFormatted} • ${photo.width} × ${photo.height} • ${cameraName}</div>
             </div>
             <button class="card-download-btn" title="Download original photo file (${photo.sizeFormatted})" data-filename="${photo.filename}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1278,9 +1376,12 @@
     const photo = state.filteredPhotos[state.currentIndex];
     if (!photo) return;
 
+    const cameraName = getPhotoCamera(photo);
+    photo.camera = cameraName;
+
     el.lbTitle.textContent = photo.title;
     el.lbCounter.textContent = `${state.currentIndex + 1} of ${state.filteredPhotos.length}`;
-    el.lbQualityPill.textContent = `Nikon Z6 III • ${photo.sizeFormatted}`;
+    el.lbQualityPill.textContent = `${cameraName} • ${photo.sizeFormatted}`;
 
     // Deep link hash update
     const albumPrefix = state.currentAlbumId ? `album=${state.currentAlbumId}&` : '';
@@ -1324,7 +1425,7 @@
     };
 
     // EXIF Metadata tags
-    if (el.lbCameraMeta) el.lbCameraMeta.textContent = `📷 ${photo.camera}`;
+    if (el.lbCameraMeta) el.lbCameraMeta.textContent = `📷 ${cameraName}`;
     if (el.lbResMeta) el.lbResMeta.textContent = `📐 ${photo.width} × ${photo.height} (${(photo.width * photo.height / 1000000).toFixed(1)} MP)`;
     if (el.lbSizeMeta) el.lbSizeMeta.textContent = `💾 ${photo.sizeFormatted} (Original Bit-for-Bit)`;
     if (el.lbDateMeta) el.lbDateMeta.textContent = `📅 ${formatDate(photo.date)}`;
@@ -1396,9 +1497,11 @@
     el.lbAdminCoverBtn.style.display = 'inline-flex';
     const albumId = state.currentAlbumId || (photo.folder ? photo.folder.toLowerCase().replace(/[\W_]+/g, '-') : (photo.originalUrl ? photo.originalUrl.split('/')[0].toLowerCase().replace(/[\W_]+/g, '-') : Object.keys(state.albums)[0]));
     const album = state.albums[albumId];
+    const cleanCoverThumb = album && album.coverThumb ? decodeURIComponent(album.coverThumb) : '';
+    const cleanCoverOrig = album && album.coverOriginal ? decodeURIComponent(album.coverOriginal) : '';
     const isCover = album && (
-      (album.coverThumb && album.coverThumb.includes(photo.filename)) ||
-      (album.coverOriginal && album.coverOriginal.includes(photo.filename)) ||
+      (cleanCoverThumb && cleanCoverThumb.includes(photo.filename)) ||
+      (cleanCoverOrig && cleanCoverOrig.includes(photo.filename)) ||
       album.coverThumb === photo.thumbUrl ||
       album.coverOriginal === photo.originalUrl
     );
@@ -1412,9 +1515,35 @@
     }
   }
 
-  // --- Detailed Nikon Z6 III EXIF Inspector ---
+  // --- Detailed EXIF Inspector ---
   function populateExifModal(photo) {
     if (!el.lbExifGrid || !photo) return;
+
+    const cameraName = getPhotoCamera(photo);
+    photo.camera = cameraName;
+
+    let sensorType = 'Digital Sensor';
+    if (cameraName.includes('Nikon')) {
+      sensorType = 'Full-Frame BSI CMOS';
+    } else if (cameraName.includes('Pixel')) {
+      sensorType = 'Google Tensor Computational HDR';
+    } else if (cameraName.includes('iPhone')) {
+      sensorType = 'Apple Photonic Engine';
+    } else if (cameraName.includes('Canon')) {
+      sensorType = 'Full-Frame CMOS';
+    } else if (cameraName.includes('Sony')) {
+      sensorType = 'Exmor R CMOS';
+    } else if (cameraName.includes('Samsung')) {
+      sensorType = 'ISOCELL Sensor';
+    }
+
+    const mp = (photo.width && photo.height)
+      ? `${(photo.width * photo.height / 1000000).toFixed(1)} MP`
+      : 'High Resolution';
+
+    const aspectStr = photo.aspectRatio
+      ? (photo.aspectRatio >= 1.4 ? '3:2 (Full-Frame)' : (photo.aspectRatio >= 1.25 ? '4:3 (Mobile/Digital)' : '16:9 (Widescreen)'))
+      : 'Standard';
 
     let timeFormatted = 'Friday, Nov 6, 2026';
     if (photo.date) {
@@ -1437,7 +1566,7 @@
     el.lbExifGrid.innerHTML = `
       <div class="exif-item exif-item-full">
         <span class="exif-label">Camera Sensor</span>
-        <span class="exif-val">${photo.camera || 'Nikon Z6 III'} (Full-Frame BSI CMOS)</span>
+        <span class="exif-val">${cameraName} (${sensorType})</span>
       </div>
       <div class="exif-item">
         <span class="exif-label">Native Resolution</span>
@@ -1445,7 +1574,7 @@
       </div>
       <div class="exif-item">
         <span class="exif-label">Megapixels</span>
-        <span class="exif-val">24.4 MP</span>
+        <span class="exif-val">${mp}</span>
       </div>
       <div class="exif-item">
         <span class="exif-label">Original File Size</span>
@@ -1461,7 +1590,7 @@
       </div>
       <div class="exif-item">
         <span class="exif-label">Aspect Ratio</span>
-        <span class="exif-val">3:2 (Full-Frame)</span>
+        <span class="exif-val">${aspectStr}</span>
       </div>
       <div class="exif-item">
         <span class="exif-label">Compression</span>
@@ -1573,18 +1702,20 @@
           isPortrait: !!p.isPortrait,
           aspectRatio: p.aspectRatio || 1.5,
           date: p.date || new Date().toLocaleDateString('en-US'),
-          camera: p.camera || 'Original DSLR',
+          camera: getPhotoCamera(p),
           people: Array.isArray(p.people) ? p.people : [],
           id: p.id || (idx + 1),
         };
       });
 
+      const cleanCoverThumb = a.coverThumb ? decodeURIComponent(a.coverThumb) : '';
+      const cleanCoverOrig = a.coverOriginal ? decodeURIComponent(a.coverOriginal) : '';
       const coverPhotoExists = cleanPhotos.some(
-        (p) => (a.coverThumb && a.coverThumb.includes(p.filename)) || (a.coverOriginal && a.coverOriginal.includes(p.filename))
+        (p) => (cleanCoverThumb && cleanCoverThumb.includes(p.filename)) || (cleanCoverOrig && cleanCoverOrig.includes(p.filename))
       );
       let coverThumb = (coverPhotoExists && a.coverThumb) ? a.coverThumb : '';
       if (!coverThumb || coverThumb.startsWith('blob:')) {
-        coverThumb = cleanPhotos[0] ? cleanPhotos[0].thumbUrl : '';
+        coverThumb = cleanPhotos[0] ? (cleanPhotos[0].thumbUrl || cleanPhotos[0].originalUrl) : '';
       }
 
       let coverOriginal = (coverPhotoExists && a.coverOriginal) ? a.coverOriginal : '';
@@ -1743,6 +1874,10 @@
           });
 
           const mergedPhotos = Array.from(mergedMap.values());
+          // Auto-heal camera models (Google Pixel, iPhone, Nikon, etc.)
+          mergedPhotos.forEach((p) => {
+            p.camera = getPhotoCamera(p);
+          });
           sanitized[id].photos = mergedPhotos;
           sanitized[id].people = (typeof ALBUMS_DATA !== 'undefined' && ALBUMS_DATA[id] && Array.isArray(ALBUMS_DATA[id].people) && ALBUMS_DATA[id].people.length > 0)
             ? ALBUMS_DATA[id].people
@@ -1912,15 +2047,17 @@
         ? `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
         : `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5.5"></circle><circle cx="15" cy="12" r="5.5"></circle></svg>`;
 
-      if (album.coverThumb && !album.coverThumb.startsWith('blob:')) {
-        const coverSrc = album.coverThumb.includes('?') ? `${album.coverThumb}&${THUMB_VERSION}` : `${album.coverThumb}?${THUMB_VERSION}`;
+      const coverUrl = getAlbumCoverUrl(album);
+      if (coverUrl) {
+        const fallbackRaw = (album.coverOriginal || album.coverThumb || (album.photos && album.photos[0] ? album.photos[0].originalUrl : '')).replace(/^\/+/, '');
         coverHtml = `
           <div class="album-card-cover">
             <img
-              src="${encodeURI(coverSrc)}"
+              src="${coverUrl}"
               alt="${album.title} Cover"
               loading="lazy"
-              onerror="handleCoverImgError(this, ${isWedding}, '${encodeURI(album.coverOriginal || album.coverThumb || '')}')"
+              decoding="async"
+              onerror="handleCoverImgError(this, ${isWedding}, '${encodeURIComponent(fallbackRaw)}', '${album.id}')"
             >
           </div>
         `;
@@ -2969,8 +3106,10 @@
 
     photos.forEach((photo) => {
       const isSelected = state.manageSelectedPhotos.has(photo.filename);
-      const isCover = (album.coverThumb && album.coverThumb.includes(photo.filename)) ||
-                      (album.coverOriginal && album.coverOriginal.includes(photo.filename)) ||
+      const cleanCoverThumb = album.coverThumb ? decodeURIComponent(album.coverThumb) : '';
+      const cleanCoverOrig = album.coverOriginal ? decodeURIComponent(album.coverOriginal) : '';
+      const isCover = (cleanCoverThumb && cleanCoverThumb.includes(photo.filename)) ||
+                      (cleanCoverOrig && cleanCoverOrig.includes(photo.filename)) ||
                       album.coverThumb === photo.thumbUrl ||
                       album.coverOriginal === photo.originalUrl;
 
@@ -3217,9 +3356,20 @@
       return;
     }
 
-    // Set cover thumb and original URL
-    album.coverThumb = photo.thumbUrl;
-    album.coverOriginal = photo.originalUrl;
+    // Set cover thumb and original URL cleanly without dead blobs or double encoding
+    const folderName = album.folder || album.title || albumId;
+    let originalRel = photo.originalUrl && !photo.originalUrl.startsWith('blob:')
+      ? photo.originalUrl
+      : `${folderName}/${photo.filename}`;
+    let thumbRel = photo.thumbUrl && !photo.thumbUrl.startsWith('blob:')
+      ? photo.thumbUrl
+      : originalRel;
+
+    try { originalRel = decodeURIComponent(originalRel); } catch (e) {}
+    try { thumbRel = decodeURIComponent(thumbRel); } catch (e) {}
+
+    album.coverThumb = thumbRel;
+    album.coverOriginal = originalRel;
 
     // Persist changes to local storage & trigger GitHub auto-sync
     saveCustomAlbums();
@@ -3526,7 +3676,7 @@
           isPortrait: false,
           aspectRatio: 1.5,
           date: new Date().toLocaleDateString('en-US'),
-          camera: 'Original DSLR',
+          camera: getPhotoCamera({ filename: item.name, folder: folderName }),
           people: assignedPeople,
           id: (album.photos.length || 0) + idx + 1,
         };
