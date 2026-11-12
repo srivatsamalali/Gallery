@@ -1959,37 +1959,71 @@
         delete state.albums[delId];
       });
 
-      // Auto-heal & merge duplicate Suman clusters (person_1, person_5, person_6, person_7 -> person_suman)
-      const DUPLICATE_SUMAN_IDS = new Set(['person_1', 'person_5', 'person_6', 'person_7']);
+      // Auto-heal & migrate all duplicate/fragmented clusters to canonical profiles
+      const CANONICAL_MIGRATION_MAP = {
+        'person_1': 'person_suman',
+        'person_5': 'person_suman',
+        'person_6': 'person_suman',
+        'person_7': 'person_suman',
+        'person_10': 'person_suman',
+        'person_11': 'person_suman',
+        'person_12': 'person_suman',
+        'person_13': 'person_suman',
+        'person_23': 'person_suman',
+        'person_39': 'person_suman',
+        'person_47': 'person_suman',
+        'person_25': 'person_2',
+        'person_46': 'person_3',
+        'person_48': 'person_3',
+        'person_31': 'person_8',
+        'person_19': 'person_9',
+        'person_21': 'person_9',
+        'person_26': 'person_9',
+        'person_15': 'person_14',
+        'person_27': 'person_14',
+        'person_28': 'person_14',
+        'person_29': 'person_14',
+        'person_37': 'person_14',
+        'person_41': 'person_40',
+        'person_43': 'person_40',
+        'person_44': 'person_40',
+      };
+      const OBSOLETE_PERSON_IDS = new Set(Object.keys(CANONICAL_MIGRATION_MAP));
+
       Object.values(state.albums).forEach((album) => {
         if (!album) return;
         if (Array.isArray(album.photos)) {
           album.photos.forEach((p) => {
             if (Array.isArray(p.people)) {
-              let hadDup = false;
+              let hadChange = false;
               const mapped = p.people.map((id) => {
-                if (DUPLICATE_SUMAN_IDS.has(id)) {
-                  hadDup = true;
-                  return 'person_suman';
+                if (CANONICAL_MIGRATION_MAP[id]) {
+                  hadChange = true;
+                  return CANONICAL_MIGRATION_MAP[id];
                 }
                 return id;
               });
-              if (hadDup) {
+              if (hadChange) {
                 p.people = Array.from(new Set(mapped));
               }
             }
           });
         }
         if (Array.isArray(album.people)) {
-          album.people = album.people.filter((p) => !DUPLICATE_SUMAN_IDS.has(p.id));
-          const sumanObj = album.people.find((p) => p.id === 'person_suman');
-          if (sumanObj && Array.isArray(album.photos)) {
-            sumanObj.photoCount = album.photos.filter((p) => Array.isArray(p.people) && p.people.includes('person_suman')).length;
-          }
+          // Filter out obsolete or duplicate IDs
+          album.people = album.people.filter((p) => !OBSOLETE_PERSON_IDS.has(p.id));
+          // Recalculate true photo counts
+          album.people.forEach((person) => {
+            if (Array.isArray(album.photos)) {
+              person.photoCount = album.photos.filter((p) => Array.isArray(p.people) && p.people.includes(person.id)).length;
+            }
+          });
+          // Only keep people with >= 2 photos or anchor IDs
+          album.people = album.people.filter((p) => (p.photoCount >= 2) || p.id === 'person_suman' || p.id === 'person_srivatsa');
           album.people.sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0));
         }
       });
-      DUPLICATE_SUMAN_IDS.forEach((id) => {
+      OBSOLETE_PERSON_IDS.forEach((id) => {
         delete state.peopleNames[id];
       });
       try {
