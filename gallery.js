@@ -1020,10 +1020,10 @@
       }
     );
 
-    document.querySelectorAll('.photo-card.reveal').forEach((card, idx) => {
+    document.querySelectorAll('.photo-card.reveal:not(.visible)').forEach((card, idx) => {
       // Stagger initial batch slightly
-      if (idx < 20) {
-        card.style.transitionDelay = `${(idx % 6) * 0.06}s`;
+      if (idx < 12) {
+        card.style.transitionDelay = `${(idx % 4) * 0.05}s`;
       }
       observer.observe(card);
     });

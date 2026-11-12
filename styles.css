@@ -1700,42 +1700,46 @@ body::before {
 
 /* Gallery Grid Layouts */
 
-/* 1. Masonry Layout (Default) */
+/* 1. Masonry Layout (Default - Stable Row-First Responsive Grid) */
 .gallery-container.layout-masonry {
-  column-count: 4;
-  column-gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-rows: masonry;
+  gap: 20px;
+  align-items: start;
 }
 
 @media (max-width: 1300px) {
   .gallery-container.layout-masonry {
-    column-count: 3;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
   }
 }
 
 @media (max-width: 860px) {
   .gallery-container.layout-masonry {
-    column-count: 2;
-    column-gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
   .gallery-container.layout-masonry .photo-card {
-    margin-bottom: 10px;
+    margin-bottom: 0;
   }
 }
 
 @media (max-width: 480px) {
   .gallery-container.layout-masonry {
-    column-count: 2;
-    column-gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
   .gallery-container.layout-masonry .photo-card {
-    margin-bottom: 8px;
+    margin-bottom: 0;
     border-radius: var(--radius-sm);
   }
 }
 
 .gallery-container.layout-masonry .photo-card {
   break-inside: avoid;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 /* 2. Uniform Grid Layout */
@@ -1801,8 +1805,6 @@ body::before {
   transform: translateY(0);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  content-visibility: auto;
-  contain-intrinsic-size: 260px;
 }
 
 .photo-card:hover {
