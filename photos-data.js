@@ -8424,7 +8424,7 @@ const ALBUMS_DATA = {
         "isPortrait": false,
         "aspectRatio": 1.5,
         "date": "11/12/2026",
-        "camera": "Original DSLR",
+        "camera": "Google Pixel",
         "people": [],
         "id": 1
       },
@@ -8444,7 +8444,7 @@ const ALBUMS_DATA = {
         "isPortrait": false,
         "aspectRatio": 1.5,
         "date": "11/12/2026",
-        "camera": "Original DSLR",
+        "camera": "Google Pixel",
         "people": [],
         "id": 3
       },
@@ -8464,7 +8464,7 @@ const ALBUMS_DATA = {
         "isPortrait": false,
         "aspectRatio": 1.5,
         "date": "11/12/2026",
-        "camera": "Original DSLR",
+        "camera": "Google Pixel",
         "people": [],
         "id": 5
       },
@@ -8484,7 +8484,7 @@ const ALBUMS_DATA = {
         "isPortrait": false,
         "aspectRatio": 1.5,
         "date": "11/12/2026",
-        "camera": "Original DSLR",
+        "camera": "Google Pixel",
         "people": [],
         "id": 7
       },
@@ -8504,7 +8504,7 @@ const ALBUMS_DATA = {
         "isPortrait": false,
         "aspectRatio": 1.5,
         "date": "11/12/2026",
-        "camera": "Original DSLR",
+        "camera": "Google Pixel",
         "people": [],
         "id": 9
       }
