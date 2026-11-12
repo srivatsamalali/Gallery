@@ -1879,28 +1879,33 @@ body::before {
   opacity: 0;
 }
 
-/* Card Badges (Size & Resolution) - subtle on desktop hover, hidden on mobile */
+/* Card Badges - Hidden from top to prevent face/subject overlap */
 .card-badges {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  display: none !important;
+}
+
+/* Card People Chips - Positioned cleanly in the bottom overlay */
+.card-people-chips {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  z-index: 3;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 5px;
 }
 
-.photo-card:hover .card-badges {
-  opacity: 1;
-}
-
-@media (max-width: 768px), (hover: none) {
-  .card-badges {
-    display: none !important;
-  }
+.card-people-chips .badge-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: rgba(201, 158, 50, 0.28) !important;
+  color: #f7d580 !important;
+  border: 1px solid rgba(201, 158, 50, 0.45) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 0.72rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .badge-tag {
@@ -4621,5 +4626,585 @@ body::before {
     gap: 10px;
   }
 }
+
+/* ==========================================================================
+   AI People & Faces Filter Strip
+   ========================================================================== */
+.people-filter-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.people-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.people-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.people-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, rgba(201, 158, 50, 0.16) 0%, rgba(217, 125, 116, 0.14) 100%);
+  color: var(--accent-gold);
+  border: 1px solid rgba(201, 158, 50, 0.35);
+  border-radius: var(--radius-full);
+}
+
+.people-header-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.btn-manage-people {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-manage-people:hover {
+  background: var(--bg-card-subtle);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold-hover);
+  transform: translateY(-1px);
+}
+
+.people-avatar-list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.people-avatar-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.people-avatar-list::-webkit-scrollbar-thumb {
+  background: rgba(201, 158, 50, 0.25);
+  border-radius: 4px;
+}
+
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  background: var(--bg-card-subtle);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.person-chip:hover {
+  border-color: rgba(201, 158, 50, 0.5);
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-sm);
+}
+
+.person-chip.active {
+  background: linear-gradient(135deg, rgba(201, 158, 50, 0.18) 0%, rgba(201, 158, 50, 0.08) 100%);
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 16px rgba(201, 158, 50, 0.35);
+}
+
+.person-chip.all-chip {
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+}
+
+.person-chip.all-chip.active {
+  background: var(--text-primary);
+  color: var(--text-light);
+  border-color: var(--text-primary);
+}
+
+.person-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--accent-gold);
+  background: #f0ecdf;
+  flex-shrink: 0;
+}
+
+.person-chip.active .person-avatar {
+  box-shadow: 0 0 8px var(--accent-gold);
+  transform: scale(1.05);
+}
+
+.person-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.person-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.person-chip.active .person-count {
+  background: rgba(201, 158, 50, 0.25);
+  color: var(--accent-gold);
+}
+
+/* Badge for photo cards & Lightbox */
+.badge-person {
+  background: rgba(201, 158, 50, 0.16) !important;
+  color: var(--accent-gold) !important;
+  border: 1px solid rgba(201, 158, 50, 0.35) !important;
+  font-weight: 600;
+}
+
+.lb-people-tag {
+  background: rgba(201, 158, 50, 0.15) !important;
+  border-color: rgba(201, 158, 50, 0.35) !important;
+  color: var(--accent-gold) !important;
+}
+
+/* People Manager Dialog */
+.people-manager-dialog {
+  max-width: 580px;
+  width: 100%;
+  max-height: 85vh;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.people-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 52vh;
+  max-height: 52dvh;
+  padding: 10px 4px;
+  text-align: left;
+}
+
+.people-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.people-edit-row:hover {
+  border-color: rgba(201, 158, 50, 0.4);
+}
+
+.people-edit-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--accent-gold);
+  flex-shrink: 0;
+}
+
+.people-edit-input-wrap {
+  flex: 1;
+}
+
+.people-edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.people-edit-input:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(201, 158, 50, 0.2);
+}
+
+.people-edit-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .people-filter-wrap {
+  background: rgba(22, 20, 18, 0.95);
+  border-color: rgba(201, 158, 50, 0.22);
+}
+
+[data-theme="dark"] .person-chip {
+  background: rgba(30, 27, 24, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .person-chip:hover {
+  border-color: var(--accent-gold);
+}
+
+[data-theme="dark"] .person-chip.active {
+  background: rgba(201, 158, 50, 0.22);
+  border-color: var(--accent-gold);
+}
+
+[data-theme="dark"] .people-edit-row {
+  background: rgba(30, 27, 24, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .people-edit-input {
+  background: rgba(18, 16, 15, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f8f6f0;
+}
+
+/* ==========================================================================
+   Mobile Responsive Optimizations for AI People Filter & Modals
+   ========================================================================== */
+@media (max-width: 768px) {
+  .people-filter-wrap {
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .people-filter-header {
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+
+  .people-header-title {
+    gap: 6px;
+  }
+
+  .people-ai-badge {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  .people-header-hint {
+    font-size: 0.76rem;
+  }
+
+  .btn-manage-people {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    min-height: 32px;
+  }
+
+  .people-avatar-list {
+    gap: 8px;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .people-avatar-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .person-chip {
+    scroll-snap-align: start;
+    padding: 4px 10px 4px 4px;
+    gap: 6px;
+    border-width: 1px;
+    touch-action: pan-x;
+  }
+
+  .person-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .person-name {
+    font-size: 0.8rem;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .person-count {
+    font-size: 0.68rem;
+    padding: 1px 5px;
+  }
+
+  .person-chip.all-chip {
+    padding: 6px 14px;
+    font-size: 0.82rem;
+  }
+
+  .person-chip.active {
+    box-shadow: 0 0 10px rgba(201, 158, 50, 0.35);
+  }
+
+  .people-manager-dialog {
+    padding: 18px 14px;
+    width: calc(100vw - 20px);
+    max-width: 100%;
+    max-height: 90dvh;
+    max-height: 90vh;
+    border-radius: 18px;
+    box-sizing: border-box;
+  }
+
+  .people-manager-list {
+    max-height: 50dvh;
+    max-height: 50vh;
+    gap: 8px;
+    padding: 4px 2px;
+  }
+
+  .people-edit-row {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .people-edit-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .people-edit-input {
+    font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
+    padding: 8px 10px;
+  }
+
+  .people-edit-count {
+    font-size: 0.74rem;
+  }
+
+  .people-manager-dialog .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px !important;
+  }
+
+  .people-manager-dialog .modal-btn {
+    flex: 1;
+    min-height: 44px;
+    font-size: 0.86rem;
+  }
+
+  .lb-people-tag {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .people-filter-wrap {
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
+  .people-filter-header {
+    margin-bottom: 6px;
+  }
+
+  .people-header-hint {
+    display: none; /* Keep header on a single clean row on compact phones */
+  }
+
+  .person-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .person-name {
+    font-size: 0.76rem;
+    max-width: 75px;
+  }
+
+  .person-chip.all-chip {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+
+  .people-manager-dialog {
+    padding: 16px 12px;
+  }
+
+  .people-manager-list {
+    max-height: 46dvh;
+  }
+}
+
+/* ==========================================================================
+   Overlapping Face Avatar Stack on Dashboard Album Cards
+   ========================================================================== */
+.album-people-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 14px;
+  padding: 4px 12px 4px 5px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  max-width: 100%;
+  box-sizing: border-box;
+  transition: all var(--transition-fast);
+}
+
+.album-card:hover .album-people-stack {
+  border-color: rgba(201, 158, 50, 0.4);
+  background: rgba(201, 158, 50, 0.08);
+}
+
+.people-stack-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.stack-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--bg-card);
+  margin-left: -8px;
+  background: #f0ecdf;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.stack-avatar:first-child {
+  margin-left: 0;
+}
+
+.album-card:hover .stack-avatar {
+  transform: translateY(-1.5px);
+}
+
+.stack-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c99e32 0%, #b38925 100%);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border: 2px solid var(--bg-card);
+  margin-left: -8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.people-stack-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-card:hover .people-stack-label {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .album-people-stack {
+  background: rgba(30, 27, 24, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .stack-avatar {
+  border-color: #1e1b18;
+}
+
+[data-theme="dark"] .stack-more {
+  border-color: #1e1b18;
+}
+
+@media (max-width: 640px) {
+  .album-people-stack {
+    margin: 8px 0 12px;
+    padding: 3px 10px 3px 4px;
+    gap: 8px;
+  }
+  .stack-avatar {
+    width: 24px;
+    height: 24px;
+    margin-left: -6px;
+  }
+  .stack-more {
+    width: 24px;
+    height: 24px;
+    font-size: 0.62rem;
+    margin-left: -6px;
+  }
+  .people-stack-label {
+    font-size: 0.74rem;
+  }
+}
+
+
 
 

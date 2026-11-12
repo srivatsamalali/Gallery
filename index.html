@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Life Through the Lens — Photo Heritage by Srivatsa</title>
   <meta name="description" content="Celebration photo archives in full original resolution. Browse, preview, and download original untouched photos. Created by Srivatsa.">
+  <meta property="og:title" content="Life Through the Lens — Photo Heritage by Srivatsa">
+  <meta property="og:description" content="Master RAW celebration photo archives preserved in 100% uncompressed quality. Created by Srivatsa.">
+  <meta property="og:image" content="https://srivatsamalali.github.io/Gallery/thumbnails/DSC_0306.JPG">
+  <meta property="og:url" content="https://srivatsamalali.github.io/Gallery/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#fbf9f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,7 +22,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css?v=4.1.0_master_upload">
+  <link rel="stylesheet" href="styles.css?v=5.0.0_ai_people">
   <script>
     // Theme Engine: Instant load for pure warm champagne or obsidian cinema dark
     try {
@@ -287,6 +293,22 @@
   <!-- Gallery Grid Section -->
   <main class="gallery-section">
     <div class="container">
+      <!-- AI People & Faces Filter Section -->
+      <div id="people-filter-wrap" class="people-filter-wrap" style="display: none;">
+        <div class="people-filter-header">
+          <div class="people-header-title">
+            <span class="people-ai-badge">✨ AI People Filter</span>
+            <span class="people-header-hint">Select a person to view photos featuring them</span>
+          </div>
+          <button type="button" id="btn-manage-people" class="btn-manage-people" title="Name or customize detected people in this collection">
+            <span>✏️ Name People</span>
+          </button>
+        </div>
+        <div id="people-avatar-list" class="people-avatar-list">
+          <!-- Populated dynamically with face avatar chips -->
+        </div>
+      </div>
+
       <div id="gallery-container" class="gallery-container layout-masonry">
         <!-- Dynamically rendered photo cards -->
       </div>
@@ -437,6 +459,7 @@
           <span class="exif-tag" id="lb-res-meta">📐 6048 × 4032 (24.4 MP)</span>
           <span class="exif-tag" id="lb-size-meta">💾 21.2 MB (Original)</span>
           <span class="exif-tag" id="lb-date-meta">📅 Nov 6, 2026</span>
+          <span class="exif-tag lb-people-tag" id="lb-people-meta" style="display: none;">👥 People</span>
         </div>
 
         <!-- Prominent Download CTA -->
@@ -757,6 +780,26 @@
     </div>
   </div>
 
+  <!-- =========================================================================
+       AI PEOPLE & FACES MANAGER MODAL
+       ========================================================================= -->
+  <div id="people-manager-modal" class="custom-modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
+    <div class="custom-modal-dialog people-manager-dialog">
+      <div class="modal-icon-wrap" style="background: rgba(201, 158, 50, 0.15); color: #c99e32;">👥</div>
+      <h3 class="modal-title">AI People & Faces Manager</h3>
+      <p class="modal-subtitle">Give recognizable names to people identified by the neural engine in this collection.</p>
+
+      <div class="people-manager-list" id="people-manager-list">
+        <!-- Dynamically generated name editors with face avatars -->
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button type="button" id="people-manager-cancel" class="modal-btn secondary">Cancel</button>
+        <button type="button" id="people-manager-save" class="modal-btn primary">Save & Update Filter</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="gallery-footer">
     <div class="container">
@@ -771,8 +814,8 @@
   </footer>
 
   <!-- Scripts with Cache Busting -->
-  <script src="photos-data.js?v=4.4.0_realtime_prune"></script>
-  <script src="gallery.js?v=4.5.0_restored_clean"></script>
+  <script src="photos-data.js?v=5.0.0_ai_people"></script>
+  <script src="gallery.js?v=5.0.0_ai_people"></script>
 </body>
 </html>
 
