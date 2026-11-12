@@ -31,7 +31,15 @@ def parse_photo_header(filepath, folder_name, filename, thumb_rel_path):
     height = 4032
     orientation = 1
     date_str = None
-    camera_model = "Nikon Z6 III"
+    fn_u = filename.upper()
+    if fn_u.startswith('PXL_') or 'PIXEL' in fn_u:
+        camera_model = "Google Pixel"
+    elif fn_u.startswith('IMG_') and not fn_u.startswith('DSC_'):
+        camera_model = "iPhone"
+    elif fn_u.startswith('DSC_'):
+        camera_model = "Nikon Z6 III"
+    else:
+        camera_model = "Digital Camera"
 
     if filename.upper().endswith('.DNG'):
         try:
