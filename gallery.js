@@ -783,25 +783,24 @@
     });
     el.peopleAvatarList.appendChild(allChip);
 
-    // Each identified person's circular avatar chip
+    // Each identified person's circular avatar chip (DP alone, no text title)
     people.forEach((person) => {
       const isActive = state.selectedPersonId === person.id;
       const displayName = getPersonName(person.id, person.name);
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = `person-chip ${isActive ? 'active' : ''}`;
+      chip.className = `person-chip person-dp-chip ${isActive ? 'active' : ''}`;
       chip.dataset.personId = person.id;
-      chip.title = `Filter photos featuring ${displayName} (${person.photoCount} photos)`;
+      chip.title = `${displayName} (${person.photoCount} photos)`;
+      chip.setAttribute('aria-label', `${displayName} (${person.photoCount} photos)`);
 
       chip.innerHTML = `
         <img
           src="${person.avatar}"
           alt="${displayName}"
           class="person-avatar"
-          onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'36\\' height=\\'36\\' viewBox=\\'0 0 24 24\\' fill=\\'%23c99e32\\'><circle cx=\\'12\\' cy=\\'8\\' r=\\'5\\'/><path d=\\'M20 21a8 8 0 1 0-16 0\\'/></svg>'"
+          onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'%23c99e32\\'><circle cx=\\'12\\' cy=\\'8\\' r=\\'5\\'/><path d=\\'M20 21a8 8 0 1 0-16 0\\'/></svg>'"
         />
-        <span class="person-name">${displayName}</span>
-        <span class="person-count">${person.photoCount}</span>
       `;
 
       chip.addEventListener('click', () => {
@@ -1959,6 +1958,43 @@
       deletedIds.forEach((delId) => {
         delete state.albums[delId];
       });
+
+      // Auto-heal & merge duplicate Suman clusters (person_1, person_5, person_6, person_7 -> person_suman)
+      const DUPLICATE_SUMAN_IDS = new Set(['person_1', 'person_5', 'person_6', 'person_7']);
+      Object.values(state.albums).forEach((album) => {
+        if (!album) return;
+        if (Array.isArray(album.photos)) {
+          album.photos.forEach((p) => {
+            if (Array.isArray(p.people)) {
+              let hadDup = false;
+              const mapped = p.people.map((id) => {
+                if (DUPLICATE_SUMAN_IDS.has(id)) {
+                  hadDup = true;
+                  return 'person_suman';
+                }
+                return id;
+              });
+              if (hadDup) {
+                p.people = Array.from(new Set(mapped));
+              }
+            }
+          });
+        }
+        if (Array.isArray(album.people)) {
+          album.people = album.people.filter((p) => !DUPLICATE_SUMAN_IDS.has(p.id));
+          const sumanObj = album.people.find((p) => p.id === 'person_suman');
+          if (sumanObj && Array.isArray(album.photos)) {
+            sumanObj.photoCount = album.photos.filter((p) => Array.isArray(p.people) && p.people.includes('person_suman')).length;
+          }
+          album.people.sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0));
+        }
+      });
+      DUPLICATE_SUMAN_IDS.forEach((id) => {
+        delete state.peopleNames[id];
+      });
+      try {
+        localStorage.setItem('gallery_people_names', JSON.stringify(state.peopleNames));
+      } catch (e) {}
 
       // Self-heal localStorage so deleted entries are eliminated permanently
       localStorage.setItem('gallery_custom_albums', JSON.stringify(state.albums));

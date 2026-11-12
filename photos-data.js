@@ -21,19 +21,13 @@ const ALBUMS_DATA = {
         "avatar": "thumbnails/faces/person_suman.jpg",
         "id": "person_suman",
         "name": "Suman",
-        "photoCount": 131
+        "photoCount": 155
       },
       {
         "avatar": "thumbnails/faces/person_srivatsa.jpg",
         "id": "person_srivatsa",
         "name": "Srivatsa",
         "photoCount": 78
-      },
-      {
-        "avatar": "thumbnails/faces/person_1.jpg",
-        "id": "person_1",
-        "name": "Person 1",
-        "photoCount": 16
       },
       {
         "avatar": "thumbnails/faces/person_2.jpg",
@@ -54,27 +48,9 @@ const ALBUMS_DATA = {
         "photoCount": 9
       },
       {
-        "avatar": "thumbnails/faces/person_5.jpg",
-        "id": "person_5",
-        "name": "Person 5",
-        "photoCount": 6
-      },
-      {
-        "avatar": "thumbnails/faces/person_6.jpg",
-        "id": "person_6",
-        "name": "Person 6",
-        "photoCount": 5
-      },
-      {
         "avatar": "thumbnails/faces/person_8.jpg",
         "id": "person_8",
         "name": "Person 8",
-        "photoCount": 4
-      },
-      {
-        "avatar": "thumbnails/faces/person_7.jpg",
-        "id": "person_7",
-        "name": "Person 7",
         "photoCount": 4
       },
       {
@@ -677,7 +653,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 11:33:02",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_7",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 24
@@ -903,7 +879,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 11:36:31",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_7",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 34
@@ -926,7 +902,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 11:36:33",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_7",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 35
@@ -949,7 +925,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 11:36:41",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_7",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 36
@@ -1149,7 +1125,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 11:39:53",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_6"
+          "person_suman"
         ],
         "id": 45
       },
@@ -1429,7 +1405,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 11:42:36",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_6"
+          "person_suman"
         ],
         "id": 58
       },
@@ -2304,7 +2280,6 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:14:39",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
           "person_suman"
         ],
         "id": 97
@@ -2351,7 +2326,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:17:58",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 99
@@ -2374,7 +2349,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:18:00",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_25"
         ],
         "id": 100
@@ -2397,7 +2372,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:20:50",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1"
+          "person_suman"
         ],
         "id": 101
       },
@@ -2441,7 +2416,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:21:54",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1"
+          "person_suman"
         ],
         "id": 103
       },
@@ -2463,7 +2438,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:22:07",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1"
+          "person_suman"
         ],
         "id": 104
       },
@@ -2722,7 +2697,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:38:36",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_5"
+          "person_suman"
         ],
         "id": 116
       },
@@ -2766,7 +2741,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:39:06",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_5"
+          "person_suman"
         ],
         "id": 118
       },
@@ -2788,7 +2763,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:39:09",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_5"
+          "person_suman"
         ],
         "id": 119
       },
@@ -2854,7 +2829,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:40:00",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1"
+          "person_suman"
         ],
         "id": 122
       },
@@ -2876,7 +2851,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:40:02",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_5"
+          "person_suman"
         ],
         "id": 123
       },
@@ -3189,9 +3164,8 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:55:11",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
-          "person_2",
-          "person_suman"
+          "person_suman",
+          "person_2"
         ],
         "id": 138
       },
@@ -3213,7 +3187,6 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:56:11",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
           "person_suman"
         ],
         "id": 139
@@ -3236,7 +3209,6 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 12:56:53",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
           "person_suman"
         ],
         "id": 140
@@ -3517,7 +3489,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 13:01:34",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 153
@@ -3540,7 +3512,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 13:01:36",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_14",
           "person_srivatsa"
         ],
@@ -3652,7 +3624,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 13:06:12",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_5"
+          "person_suman"
         ],
         "id": 159
       },
@@ -3783,7 +3755,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 13:12:20",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_2",
           "person_3"
         ],
@@ -3945,7 +3917,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 13:19:47",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_33"
         ],
         "id": 172
@@ -4163,7 +4135,7 @@ const ALBUMS_DATA = {
         "camera": "Nikon Z6 III",
         "people": [
           "person_35",
-          "person_5",
+          "person_suman",
           "person_srivatsa"
         ],
         "id": 182
@@ -5374,7 +5346,6 @@ const ALBUMS_DATA = {
         "camera": "Nikon Z6 III",
         "people": [
           "person_46",
-          "person_6",
           "person_suman"
         ],
         "id": 238
@@ -5465,10 +5436,9 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 13:59:51",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_2",
-          "person_3",
-          "person_suman"
+          "person_3"
         ],
         "id": 242
       },
@@ -5561,10 +5531,9 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 14:09:21",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_1",
+          "person_suman",
           "person_3",
-          "person_4",
-          "person_suman"
+          "person_4"
         ],
         "id": 246
       },
@@ -5995,7 +5964,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 14:26:21",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_6"
+          "person_suman"
         ],
         "id": 266
       },
@@ -6017,7 +5986,7 @@ const ALBUMS_DATA = {
         "date": "2026:11:06 14:26:23",
         "camera": "Nikon Z6 III",
         "people": [
-          "person_6"
+          "person_suman"
         ],
         "id": 267
       },
@@ -9033,7 +9002,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 11:33:02",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_7",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 24
@@ -9259,7 +9228,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 11:36:31",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_7",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 34
@@ -9282,7 +9251,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 11:36:33",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_7",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 35
@@ -9305,7 +9274,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 11:36:41",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_7",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 36
@@ -9505,7 +9474,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 11:39:53",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_6"
+      "person_suman"
     ],
     "id": 45
   },
@@ -9785,7 +9754,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 11:42:36",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_6"
+      "person_suman"
     ],
     "id": 58
   },
@@ -10660,7 +10629,6 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:14:39",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
       "person_suman"
     ],
     "id": 97
@@ -10707,7 +10675,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:17:58",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 99
@@ -10730,7 +10698,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:18:00",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_25"
     ],
     "id": 100
@@ -10753,7 +10721,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:20:50",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1"
+      "person_suman"
     ],
     "id": 101
   },
@@ -10797,7 +10765,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:21:54",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1"
+      "person_suman"
     ],
     "id": 103
   },
@@ -10819,7 +10787,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:22:07",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1"
+      "person_suman"
     ],
     "id": 104
   },
@@ -11078,7 +11046,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:38:36",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_5"
+      "person_suman"
     ],
     "id": 116
   },
@@ -11122,7 +11090,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:39:06",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_5"
+      "person_suman"
     ],
     "id": 118
   },
@@ -11144,7 +11112,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:39:09",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_5"
+      "person_suman"
     ],
     "id": 119
   },
@@ -11210,7 +11178,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:40:00",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1"
+      "person_suman"
     ],
     "id": 122
   },
@@ -11232,7 +11200,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:40:02",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_5"
+      "person_suman"
     ],
     "id": 123
   },
@@ -11545,9 +11513,8 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:55:11",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
-      "person_2",
-      "person_suman"
+      "person_suman",
+      "person_2"
     ],
     "id": 138
   },
@@ -11569,7 +11536,6 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:56:11",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
       "person_suman"
     ],
     "id": 139
@@ -11592,7 +11558,6 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 12:56:53",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
       "person_suman"
     ],
     "id": 140
@@ -11873,7 +11838,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 13:01:34",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 153
@@ -11896,7 +11861,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 13:01:36",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_14",
       "person_srivatsa"
     ],
@@ -12008,7 +11973,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 13:06:12",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_5"
+      "person_suman"
     ],
     "id": 159
   },
@@ -12139,7 +12104,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 13:12:20",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_2",
       "person_3"
     ],
@@ -12301,7 +12266,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 13:19:47",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_33"
     ],
     "id": 172
@@ -12519,7 +12484,7 @@ const PHOTOS_DATA = [
     "camera": "Nikon Z6 III",
     "people": [
       "person_35",
-      "person_5",
+      "person_suman",
       "person_srivatsa"
     ],
     "id": 182
@@ -13730,7 +13695,6 @@ const PHOTOS_DATA = [
     "camera": "Nikon Z6 III",
     "people": [
       "person_46",
-      "person_6",
       "person_suman"
     ],
     "id": 238
@@ -13821,10 +13785,9 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 13:59:51",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_2",
-      "person_3",
-      "person_suman"
+      "person_3"
     ],
     "id": 242
   },
@@ -13917,10 +13880,9 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 14:09:21",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_1",
+      "person_suman",
       "person_3",
-      "person_4",
-      "person_suman"
+      "person_4"
     ],
     "id": 246
   },
@@ -14351,7 +14313,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 14:26:21",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_6"
+      "person_suman"
     ],
     "id": 266
   },
@@ -14373,7 +14335,7 @@ const PHOTOS_DATA = [
     "date": "2026:11:06 14:26:23",
     "camera": "Nikon Z6 III",
     "people": [
-      "person_6"
+      "person_suman"
     ],
     "id": 267
   },

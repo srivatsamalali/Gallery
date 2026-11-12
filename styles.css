@@ -4833,79 +4833,73 @@ select.action-btn:focus,
 .person-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px 5px 5px;
-  background: var(--bg-card-subtle);
-  border: 1.5px solid var(--border-light);
-  border-radius: var(--radius-full);
+  justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
-  white-space: nowrap;
   flex-shrink: 0;
   user-select: none;
 }
 
-.person-chip:hover {
-  border-color: rgba(201, 158, 50, 0.5);
-  transform: translateY(-1.5px);
+/* DP-only Circular Avatar Chip */
+.person-chip.person-dp-chip {
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background: var(--bg-card);
   box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
-.person-chip.active {
-  background: linear-gradient(135deg, rgba(201, 158, 50, 0.18) 0%, rgba(201, 158, 50, 0.08) 100%);
+.person-chip.person-dp-chip:hover {
   border-color: var(--accent-gold);
-  box-shadow: 0 0 16px rgba(201, 158, 50, 0.35);
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 4px 14px rgba(201, 158, 50, 0.35);
 }
 
+.person-chip.person-dp-chip.active {
+  border-color: var(--accent-gold);
+  background: rgba(201, 158, 50, 0.16);
+  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 16px rgba(201, 158, 50, 0.45);
+  transform: scale(1.08);
+}
+
+.person-chip.person-dp-chip .person-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(201, 158, 50, 0.25);
+  display: block;
+}
+
+.person-chip.person-dp-chip.active .person-avatar {
+  border-color: var(--accent-gold);
+}
+
+/* All People Filter Pill */
 .person-chip.all-chip {
-  padding: 8px 16px;
+  height: 44px;
+  padding: 0 16px;
   font-weight: 600;
   font-size: 0.84rem;
   color: var(--text-primary);
+  background: var(--bg-card-subtle);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-full);
+}
+
+.person-chip.all-chip:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-1.5px);
 }
 
 .person-chip.all-chip.active {
   background: var(--text-primary);
   color: var(--text-light);
   border-color: var(--text-primary);
-}
-
-.person-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1.5px solid var(--accent-gold);
-  background: #f0ecdf;
-  flex-shrink: 0;
-}
-
-.person-chip.active .person-avatar {
-  box-shadow: 0 0 8px var(--accent-gold);
-  transform: scale(1.05);
-}
-
-.person-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.person-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  background: rgba(0, 0, 0, 0.06);
-  padding: 2px 7px;
-  border-radius: var(--radius-full);
-}
-
-.person-chip.active .person-count {
-  background: rgba(201, 158, 50, 0.25);
-  color: var(--accent-gold);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.25);
 }
 
 /* Badge for photo cards & Lightbox */
@@ -5075,33 +5069,24 @@ select.action-btn:focus,
 
   .person-chip {
     scroll-snap-align: start;
-    padding: 4px 10px 4px 4px;
-    gap: 6px;
-    border-width: 1px;
     touch-action: pan-x;
   }
 
-  .person-avatar {
-    width: 32px;
-    height: 32px;
+  .person-chip.person-dp-chip {
+    width: 38px;
+    height: 38px;
+    padding: 2px;
   }
 
-  .person-name {
-    font-size: 0.8rem;
-    max-width: 90px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .person-count {
-    font-size: 0.68rem;
-    padding: 1px 5px;
+  .person-chip.person-dp-chip .person-avatar {
+    width: 100%;
+    height: 100%;
   }
 
   .person-chip.all-chip {
-    padding: 6px 14px;
-    font-size: 0.82rem;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 0.78rem;
   }
 
   .person-chip.active {
@@ -5181,19 +5166,15 @@ select.action-btn:focus,
     display: none; /* Keep header on a single clean row on compact phones */
   }
 
-  .person-avatar {
-    width: 28px;
-    height: 28px;
-  }
-
-  .person-name {
-    font-size: 0.76rem;
-    max-width: 75px;
+  .person-chip.person-dp-chip {
+    width: 36px;
+    height: 36px;
   }
 
   .person-chip.all-chip {
-    padding: 5px 10px;
-    font-size: 0.78rem;
+    height: 36px;
+    padding: 0 10px;
+    font-size: 0.76rem;
   }
 
   .people-manager-dialog {
