@@ -413,7 +413,10 @@
     }
 
     // Direct repository file (e.g. Madilu tumbo program - Gulbarga/IMG_...):
-    return `${GITHUB_RAW_BASE}/${encodeURI(clean)}`;
+    if (window.location.hostname.endsWith('github.io')) {
+      return `${GITHUB_RAW_BASE}/${encodeURI(clean)}`;
+    }
+    return encodeURI(clean);
   }
 
   // --- Robust Global Error Handlers for Images (Safari, Mobile & Instant Raw Sync) ---
@@ -427,14 +430,21 @@
       cleanPath = (fallbackPath || '').replace(/^\/+/, '').split('?')[0];
     }
 
-    // Stage 1: Try GITHUB_RAW_BASE with clean URI encoding (avoiding double %2520 encoding)
+    // Stage 1: If path is not already in thumbnails/, try pre-generated thumbnail (hosted on gh-pages & local)
+    if (cleanPath && !cleanPath.startsWith('thumbnails/') && !img.dataset.triedThumb && !cleanPath.startsWith('blob:')) {
+      img.dataset.triedThumb = 'true';
+      img.src = `thumbnails/${encodeURI(cleanPath)}?${THUMB_VERSION}`;
+      return;
+    }
+
+    // Stage 2: Try GITHUB_RAW_BASE with clean URI encoding (avoiding double %2520 encoding)
     if (cleanPath && !img.dataset.triedRaw && !cleanPath.startsWith('blob:')) {
       img.dataset.triedRaw = 'true';
       img.src = `${GITHUB_RAW_BASE}/${encodeURI(cleanPath)}`;
       return;
     }
 
-    // Stage 2: Try first photo of this album before showing placeholder
+    // Stage 3: Try first photo of this album before showing placeholder
     if (albumId && state.albums && state.albums[albumId] && !img.dataset.triedAlbumFirst) {
       img.dataset.triedAlbumFirst = 'true';
       const alb = state.albums[albumId];
@@ -448,7 +458,7 @@
       }
     }
 
-    // Stage 3: Placeholder only if all above fail
+    // Stage 4: Placeholder only if all above fail
     img.onerror = null;
     const parent = img.parentElement;
     if (!parent) return;
@@ -2171,9 +2181,18 @@
       <h3 class="add-folder-title">Uploading Future Folders</h3>
       <p class="add-folder-desc">Whenever you have a new photoshoot or celebration, simply:</p>
       <ol class="add-folder-steps">
-        <li><span class="step-num">1</span> Click <strong>"Manage Folders & Uploads"</strong> above (or create folder locally)</li>
-        <li><span class="step-num">2</span> Drag and drop your photos or a <strong>.ZIP archive</strong></li>
-        <li><span class="step-num">3</span> Set an optional password to keep the collection private</li>
+        <li>
+          <span class="step-num">1</span>
+          <span class="step-text">Click <strong>"Manage Folders & Uploads"</strong> above (or create folder locally)</span>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <span class="step-text">Drag and drop your photos or a <strong>.ZIP archive</strong></span>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <span class="step-text">Set an optional password to keep the collection private</span>
+        </li>
       </ol>
     `;
     el.albumsGrid.appendChild(guideCard);
@@ -3775,9 +3794,12 @@
     }
 
     if (el.albumDescription) {
+      let rawDesc = (album.description || 'A timeless collection preserved in bit-for-bit uncompressed original quality.')
+        .replace(/Created by Srivatsa\.?/gi, '')
+        .trim();
+      if (!rawDesc.endsWith('.')) rawDesc += '.';
       el.albumDescription.innerHTML = `
-        ${album.description || 'A timeless collection preserved in bit-for-bit uncompressed original quality.'}
-        Anyone with this link can view in large preview and download any original photo.
+        ${rawDesc} Anyone with this link can view in large preview and download any original photo.
         <span class="hero-creator-tag">✨ Created by Srivatsa</span>
       `;
     }

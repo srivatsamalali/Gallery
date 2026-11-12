@@ -1005,23 +1005,36 @@ body::before {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .add-folder-steps li {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
+  line-height: 1.5;
+}
+
+.step-text {
+  flex: 1;
+  color: var(--text-secondary);
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.step-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .step-num {
   font-weight: 700;
   color: var(--accent-gold);
   background: rgba(201, 158, 50, 0.12);
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
