@@ -3802,7 +3802,7 @@
     if (el.sortSelect) {
       el.sortSelect.value = 'default';
       if (el.sortSelect.options[0]) {
-        el.sortSelect.options[0].textContent = `Timeline (All Photos • ${album.photoCount || 0})`;
+        el.sortSelect.options[0].textContent = `Timeline (${album.photoCount || 0})`;
       }
     }
     el.filterTabs.forEach((tab) => {
