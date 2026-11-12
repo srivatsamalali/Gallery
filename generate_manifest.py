@@ -203,6 +203,7 @@ def scan_albums():
                 'status': 'upcoming',
                 'isPasswordProtected': existing.get('isPasswordProtected', False),
                 'passwordHash': existing.get('passwordHash', ''),
+                'people': existing.get('people', []),
                 'photos': []
             }
             albums.append(album_meta)
@@ -225,8 +226,10 @@ def scan_albums():
             photos = list(executor.map(process_one, files))
 
         photos.sort(key=lambda x: x['filename'])
+        existing_photo_people = {p['filename']: p['people'] for p in existing.get('photos', []) if p.get('filename') and p.get('people')}
         for idx, p in enumerate(photos):
             p['id'] = idx + 1
+            p['people'] = existing_photo_people.get(p['filename'], [])
 
         total_bytes = sum(p['sizeBytes'] for p in photos)
         total_mb = total_bytes / (1024 * 1024)
@@ -258,6 +261,7 @@ def scan_albums():
             'status': 'active',
             'isPasswordProtected': existing.get('isPasswordProtected', False),
             'passwordHash': existing.get('passwordHash', ''),
+            'people': existing.get('people', []),
             'photos': photos
         }
         albums.append(album_meta)
@@ -281,6 +285,16 @@ def main():
         f.write(';\n')
 
     print(f'Successfully generated manifest with {len(albums)} album(s) at {MANIFEST_PATH}.')
+
+    # Automatically run AI Face Segmentation & Clustering on all photos
+    detect_bin = os.path.join(BASE_DIR, 'detect_faces')
+    detect_swift = os.path.join(BASE_DIR, 'detect_faces.swift')
+    if os.path.exists(detect_bin) and os.access(detect_bin, os.X_OK):
+        print("Running AI Face Segmentation & Clustering (Neural Engine)...")
+        subprocess.run([detect_bin], check=False)
+    elif os.path.exists(detect_swift):
+        print("Running AI Face Segmentation & Clustering via Swift...")
+        subprocess.run(['swift', detect_swift], check=False)
 
 if __name__ == '__main__':
     main()

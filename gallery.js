@@ -32,6 +32,8 @@
     pendingUnlockAlbum: null,
     manageSelectedPhotos: new Set(),
     manageTargetAlbumId: null,
+    selectedPersonId: null,
+    peopleNames: JSON.parse(localStorage.getItem('gallery_people_names') || '{}'),
   };
 
   // --- Admin Security Constants ---
@@ -140,6 +142,16 @@
     uploadErrorActions: document.getElementById('upload-error-actions'),
     btnUploadDone: document.getElementById('btn-upload-done'),
     btnUploadCloseErr: document.getElementById('btn-upload-close-err'),
+
+    // AI People & Faces Filter Elements
+    peopleFilterWrap: document.getElementById('people-filter-wrap'),
+    peopleAvatarList: document.getElementById('people-avatar-list'),
+    btnManagePeople: document.getElementById('btn-manage-people'),
+    peopleManagerModal: document.getElementById('people-manager-modal'),
+    peopleManagerList: document.getElementById('people-manager-list'),
+    peopleManagerCancel: document.getElementById('people-manager-cancel'),
+    peopleManagerSave: document.getElementById('people-manager-save'),
+    lbPeopleMeta: document.getElementById('lb-people-meta'),
 
     // Gallery Elements
     galleryContainer: document.getElementById('gallery-container'),
@@ -432,10 +444,27 @@
       result = result.filter((p) => state.favorites.has(p.filename));
     }
 
-    // Search query
+    // Filter by Selected Person
+    if (state.selectedPersonId) {
+      const targetName = getPersonName(state.selectedPersonId).toLowerCase();
+      result = result.filter((p) => {
+        if (!p.people || !Array.isArray(p.people)) return false;
+        if (p.people.includes(state.selectedPersonId)) return true;
+        // Also match if multiple clusters share the same name (e.g. Suman 1 & Suman 2)
+        return p.people.some((pid) => getPersonName(pid).toLowerCase() === targetName);
+      });
+    }
+
+    // Search query (supports filename, title, and person name!)
     if (state.searchQuery.trim()) {
       const q = state.searchQuery.trim().toLowerCase();
-      result = result.filter((p) => p.filename.toLowerCase().includes(q) || p.title.toLowerCase().includes(q));
+      result = result.filter((p) => {
+        if (p.filename.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)) return true;
+        if (p.people && Array.isArray(p.people)) {
+          return p.people.some((pid) => getPersonName(pid).toLowerCase().includes(q));
+        }
+        return false;
+      });
     }
 
     // Timeline Chapter Filter (if selected in sort dropdown)
@@ -563,6 +592,171 @@
     infiniteScrollObserver.observe(el.scrollSentinel);
   }
 
+  // --- AI People & Faces Filter Controller ---
+  function getPersonName(personId, fallbackName = null) {
+    if (state.peopleNames && state.peopleNames[personId]) {
+      return state.peopleNames[personId];
+    }
+    const currentAlbum = state.albums[state.currentAlbumId];
+    if (currentAlbum && Array.isArray(currentAlbum.people)) {
+      const found = currentAlbum.people.find((p) => p.id === personId);
+      if (found && found.name) return found.name;
+    }
+    for (const alb of Object.values(state.albums)) {
+      if (alb && Array.isArray(alb.people)) {
+        const found = alb.people.find((p) => p.id === personId);
+        if (found && found.name) return found.name;
+      }
+    }
+    return fallbackName || personId.replace('person_', 'Person ');
+  }
+
+  function renderPeopleFilter(albumId) {
+    if (!el.peopleFilterWrap || !el.peopleAvatarList) return;
+    const album = state.albums[albumId];
+    const people = album && Array.isArray(album.people) ? album.people : [];
+
+    // If album has 0 or 1 person (e.g. personal albums like Srivatsa or Suman),
+    // do not show redundant face filter chips since all photos are of the same person.
+    if (people.length <= 1) {
+      el.peopleFilterWrap.style.display = 'none';
+      return;
+    }
+
+    el.peopleFilterWrap.style.display = 'block';
+    el.peopleAvatarList.innerHTML = '';
+
+    // "All People" reset chip
+    const isAllActive = !state.selectedPersonId;
+    const allChip = document.createElement('button');
+    allChip.type = 'button';
+    allChip.className = `person-chip all-chip ${isAllActive ? 'active' : ''}`;
+    allChip.innerHTML = `<span>👥 All (${album.photos?.length || album.photoCount || 0})</span>`;
+    allChip.addEventListener('click', () => {
+      state.selectedPersonId = null;
+      renderPeopleFilter(albumId);
+      applyFiltersAndSort();
+      el.peopleAvatarList.scrollTo({ left: 0, behavior: 'smooth' });
+    });
+    el.peopleAvatarList.appendChild(allChip);
+
+    // Each identified person's circular avatar chip
+    people.forEach((person) => {
+      const isActive = state.selectedPersonId === person.id;
+      const displayName = getPersonName(person.id, person.name);
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = `person-chip ${isActive ? 'active' : ''}`;
+      chip.dataset.personId = person.id;
+      chip.title = `Filter photos featuring ${displayName} (${person.photoCount} photos)`;
+
+      chip.innerHTML = `
+        <img
+          src="${person.avatar}"
+          alt="${displayName}"
+          class="person-avatar"
+          onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'36\\' height=\\'36\\' viewBox=\\'0 0 24 24\\' fill=\\'%23c99e32\\'><circle cx=\\'12\\' cy=\\'8\\' r=\\'5\\'/><path d=\\'M20 21a8 8 0 1 0-16 0\\'/></svg>'"
+        />
+        <span class="person-name">${displayName}</span>
+        <span class="person-count">${person.photoCount}</span>
+      `;
+
+      chip.addEventListener('click', () => {
+        if (state.selectedPersonId === person.id) {
+          state.selectedPersonId = null;
+        } else {
+          state.selectedPersonId = person.id;
+        }
+        renderPeopleFilter(albumId);
+        applyFiltersAndSort();
+        const activeChip = el.peopleAvatarList.querySelector('.person-chip.active');
+        if (activeChip) {
+          activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      });
+
+      el.peopleAvatarList.appendChild(chip);
+    });
+  }
+
+  function openPeopleManagerModal() {
+    if (!el.peopleManagerModal || !el.peopleManagerList) return;
+    const currentAlbum = state.albums[state.currentAlbumId];
+    if (!currentAlbum || !Array.isArray(currentAlbum.people) || currentAlbum.people.length === 0) {
+      showToast('No People Identified', 'No faces detected yet in this collection.', 'ℹ️', 3500);
+      return;
+    }
+
+    el.peopleManagerList.innerHTML = '';
+    currentAlbum.people.forEach((person) => {
+      const currentName = getPersonName(person.id, person.name);
+      const row = document.createElement('div');
+      row.className = 'people-edit-row';
+      row.innerHTML = `
+        <img
+          src="${person.avatar}"
+          alt="${currentName}"
+          class="people-edit-avatar"
+          onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'44\\' height=\\'44\\' viewBox=\\'0 0 24 24\\' fill=\\'%23c99e32\\'><circle cx=\\'12\\' cy=\\'8\\' r=\\'5\\'/><path d=\\'M20 21a8 8 0 1 0-16 0\\'/></svg>'"
+        />
+        <div class="people-edit-input-wrap">
+          <input
+            type="text"
+            class="people-edit-input"
+            data-person-id="${person.id}"
+            value="${currentName}"
+            placeholder="Enter person's name..."
+          />
+        </div>
+        <div class="people-edit-count">${person.photoCount} photos</div>
+      `;
+      el.peopleManagerList.appendChild(row);
+    });
+
+    el.peopleManagerModal.style.display = 'flex';
+    syncBodyModalState();
+  }
+
+  function savePeopleNames() {
+    if (!el.peopleManagerList) return;
+    const inputs = el.peopleManagerList.querySelectorAll('.people-edit-input');
+    let changed = false;
+
+    inputs.forEach((input) => {
+      const pid = input.dataset.personId;
+      const val = input.value.trim();
+      if (pid && val) {
+        state.peopleNames[pid] = val;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      try {
+        localStorage.setItem('gallery_people_names', JSON.stringify(state.peopleNames));
+      } catch (e) {}
+
+      // Update in-memory album people objects
+      Object.values(state.albums).forEach((alb) => {
+        if (alb && Array.isArray(alb.people)) {
+          alb.people.forEach((p) => {
+            if (state.peopleNames[p.id]) {
+              p.name = state.peopleNames[p.id];
+            }
+          });
+        }
+      });
+
+      saveCustomAlbums();
+      renderPeopleFilter(state.currentAlbumId);
+      applyFiltersAndSort();
+      showToast('People Names Saved', 'Face tags updated and saved across collection.', '✨', 3500);
+    }
+
+    if (el.peopleManagerModal) el.peopleManagerModal.style.display = 'none';
+    syncBodyModalState();
+  }
+
   function createPhotoCard(photo, index) {
     const card = document.createElement('div');
     card.className = `photo-card reveal ${state.selectedPhotos.has(photo.filename) ? 'selected' : ''}`;
@@ -580,13 +774,18 @@
       currentAlbum.coverOriginal === photo.originalUrl
     );
 
+    let peopleBadgesHtml = '';
+    if (photo.people && Array.isArray(photo.people) && photo.people.length > 0) {
+      const names = photo.people.map((pid) => getPersonName(pid)).filter(Boolean);
+      if (names.length > 0) {
+        const displayText = names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ');
+        peopleBadgesHtml = `<span class="badge-tag badge-person" title="People in photo: ${names.join(', ')}">👤 ${displayText}</span>`;
+      }
+    }
+
     card.innerHTML = `
       <div class="photo-img-wrap" style="aspect-ratio: ${aspect};">
         ${isCover ? '<div class="card-cover-indicator" title="Current Album Cover Photo">★ Cover</div>' : ''}
-        <div class="card-badges">
-          <span class="badge-tag badge-size">💾 ${photo.sizeFormatted}</span>
-          <span class="badge-tag badge-res">📐 ${photo.isPortrait ? 'Portrait • 24 MP' : 'Landscape • 24 MP'}</span>
-        </div>
 
         <!-- Subtle Favorite Watermark (only visible if favorited) -->
         <div class="card-fav-badge ${isFav ? 'visible' : ''}" data-filename="${photo.filename}">
@@ -644,8 +843,9 @@
 
           <div class="overlay-bottom">
             <div class="card-title-wrap">
+              ${peopleBadgesHtml ? `<div class="card-people-chips">${peopleBadgesHtml}</div>` : ''}
               <div class="card-photo-name">${photo.title}</div>
-              <div class="card-photo-meta">${photo.width} × ${photo.height} • ${photo.camera}</div>
+              <div class="card-photo-meta">${photo.sizeFormatted} • ${photo.width} × ${photo.height} • ${photo.camera}</div>
             </div>
             <button class="card-download-btn" title="Download original photo file (${photo.sizeFormatted})" data-filename="${photo.filename}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1129,6 +1329,29 @@
     if (el.lbSizeMeta) el.lbSizeMeta.textContent = `💾 ${photo.sizeFormatted} (Original Bit-for-Bit)`;
     if (el.lbDateMeta) el.lbDateMeta.textContent = `📅 ${formatDate(photo.date)}`;
 
+    // People tags in Lightbox
+    if (el.lbPeopleMeta) {
+      if (photo.people && Array.isArray(photo.people) && photo.people.length > 0) {
+        const names = photo.people.map((pid) => getPersonName(pid)).filter(Boolean);
+        if (names.length > 0) {
+          el.lbPeopleMeta.textContent = `👥 ${names.join(', ')}`;
+          el.lbPeopleMeta.style.display = 'inline-flex';
+          el.lbPeopleMeta.title = `Filter album by ${names.join(', ')}`;
+          el.lbPeopleMeta.style.cursor = 'pointer';
+          el.lbPeopleMeta.onclick = () => {
+            closeLightbox();
+            state.selectedPersonId = photo.people[0];
+            renderPeopleFilter(state.currentAlbumId);
+            applyFiltersAndSort();
+          };
+        } else {
+          el.lbPeopleMeta.style.display = 'none';
+        }
+      } else {
+        el.lbPeopleMeta.style.display = 'none';
+      }
+    }
+
     // Update CTA button label
     if (el.lbDownloadCta) {
       el.lbDownloadCta.innerHTML = `
@@ -1351,6 +1574,7 @@
           aspectRatio: p.aspectRatio || 1.5,
           date: p.date || new Date().toLocaleDateString('en-US'),
           camera: p.camera || 'Original DSLR',
+          people: Array.isArray(p.people) ? p.people : [],
           id: p.id || (idx + 1),
         };
       });
@@ -1395,6 +1619,7 @@
         status: cleanPhotos.length > 0 ? 'active' : (a.status || 'upcoming'),
         isPasswordProtected: !!a.isPasswordProtected,
         passwordHash: a.passwordHash || '',
+        people: Array.isArray(a.people) ? a.people : [],
         photos: cleanPhotos,
       };
     });
@@ -1508,12 +1733,20 @@
             if (p && p.filename && !deletedPhotoKeys.has(`${id}:${p.filename}`)) {
               if (!mergedMap.has(p.filename)) {
                 mergedMap.set(p.filename, p);
+              } else {
+                const existing = mergedMap.get(p.filename);
+                if ((!existing.people || existing.people.length === 0) && Array.isArray(p.people)) {
+                  existing.people = p.people;
+                }
               }
             }
           });
 
           const mergedPhotos = Array.from(mergedMap.values());
           sanitized[id].photos = mergedPhotos;
+          sanitized[id].people = (typeof ALBUMS_DATA !== 'undefined' && ALBUMS_DATA[id] && Array.isArray(ALBUMS_DATA[id].people) && ALBUMS_DATA[id].people.length > 0)
+            ? ALBUMS_DATA[id].people
+            : (Array.isArray(sanitized[id].people) ? sanitized[id].people : []);
           sanitized[id].photoCount = mergedPhotos.length;
           sanitized[id].totalSizeBytes = mergedPhotos.reduce((sum, p) => sum + (p.sizeBytes || 0), 0);
           sanitized[id].totalSizeFormatted = formatBytes(sanitized[id].totalSizeBytes);
@@ -1706,6 +1939,46 @@
         `;
       }
 
+      const people = Array.isArray(album.people) ? album.people : [];
+      let peopleStackHtml = '';
+      if (people.length > 0) {
+        const topPeople = people.slice(0, 4);
+        const remainingCount = people.length - topPeople.length;
+        const avatarsHtml = topPeople.map((p, pIdx) => `
+          <img
+            src="${p.avatar}"
+            alt="${p.name}"
+            title="${p.name} (${p.photoCount} photos)"
+            class="stack-avatar"
+            style="z-index: ${10 - pIdx};"
+            onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'28\\' height=\\'28\\' viewBox=\\'0 0 24 24\\' fill=\\'%23c99e32\\'><circle cx=\\'12\\' cy=\\'8\\' r=\\'5\\'/><path d=\\'M20 21a8 8 0 1 0-16 0\\'/></svg>'"
+          />
+        `).join('');
+
+        const moreBadgeHtml = remainingCount > 0
+          ? `<span class="stack-more" title="+${remainingCount} more people">+${remainingCount}</span>`
+          : '';
+
+        let labelText = '';
+        if (people.length === 1) {
+          labelText = `👤 ${people[0].name} (${people[0].photoCount} photos)`;
+        } else if (people.length === 2) {
+          labelText = `👥 ${people[0].name} & ${people[1].name}`;
+        } else {
+          labelText = `👥 ${people[0].name}, ${people[1].name} +${people.length - 2}`;
+        }
+
+        peopleStackHtml = `
+          <div class="album-people-stack" title="People recognized in this collection: ${people.map((p) => p.name).join(', ')}">
+            <div class="people-stack-avatars">
+              ${avatarsHtml}
+              ${moreBadgeHtml}
+            </div>
+            <span class="people-stack-label">${labelText}</span>
+          </div>
+        `;
+      }
+
       card.innerHTML = `
         ${coverHtml}
         <div class="album-card-body">
@@ -1720,6 +1993,7 @@
             <span>📁 Folder:</span> <code>${album.folder}</code>
           </div>
           <p class="album-card-desc">${album.description || 'Preserved in 100% original uncompressed quality.'}</p>
+          ${peopleStackHtml}
           <div class="album-card-footer">
             <span class="album-card-stats">${isActive ? `${album.totalSizeFormatted} Master Quality` : 'Ready for upload'}</span>
             <button class="album-card-btn ${isActive ? '' : 'btn-upcoming'}" type="button">
@@ -1995,6 +2269,7 @@
       (el.adminSuiteModal && el.adminSuiteModal.style.display !== 'none' && el.adminSuiteModal.style.display !== '') ||
       (el.passwordModal && el.passwordModal.style.display !== 'none' && el.passwordModal.style.display !== '') ||
       (el.uploadProgressModal && el.uploadProgressModal.style.display !== 'none' && el.uploadProgressModal.style.display !== '') ||
+      (el.peopleManagerModal && el.peopleManagerModal.style.display !== 'none' && el.peopleManagerModal.style.display !== '') ||
       (document.getElementById('action-popup-modal') && document.getElementById('action-popup-modal').style.display !== 'none' && document.getElementById('action-popup-modal').style.display !== '');
 
     if (isAnyModalOpen) {
@@ -3227,6 +3502,14 @@
       // Add ONLY successfully uploaded photos to album
       successfullyUploadedPhotos.forEach((item, idx) => {
         const repoRelPath = `${folderName}/${item.name}`;
+        const assignedPeople = [];
+        if (album.people && Array.isArray(album.people) && album.people.length > 0) {
+          if (targetAlbumId === 'srivatsa' || targetAlbumId === 'suman' || album.people.length === 1) {
+            assignedPeople.push(album.people[0].id);
+            album.people[0].photoCount = (album.people[0].photoCount || 0) + 1;
+          }
+        }
+
         const newPhoto = {
           filename: item.name,
           title: item.name.replace(/\.[^/.]+$/, ''),
@@ -3244,6 +3527,7 @@
           aspectRatio: 1.5,
           date: new Date().toLocaleDateString('en-US'),
           camera: 'Original DSLR',
+          people: assignedPeople,
           id: (album.photos.length || 0) + idx + 1,
         };
 
@@ -3362,6 +3646,8 @@
     state.activeFilter = 'all';
     state.searchQuery = '';
     state.sortBy = 'default';
+    state.selectedPersonId = null;
+    renderPeopleFilter(albumId);
     if (el.searchInput) el.searchInput.value = '';
     if (el.sortSelect) {
       el.sortSelect.value = 'default';
@@ -4229,6 +4515,28 @@
       });
     }
 
+    // AI People Manager controls
+    if (el.btnManagePeople) {
+      el.btnManagePeople.addEventListener('click', openPeopleManagerModal);
+    }
+    if (el.peopleManagerCancel) {
+      el.peopleManagerCancel.addEventListener('click', () => {
+        if (el.peopleManagerModal) el.peopleManagerModal.style.display = 'none';
+        syncBodyModalState();
+      });
+    }
+    if (el.peopleManagerSave) {
+      el.peopleManagerSave.addEventListener('click', savePeopleNames);
+    }
+    if (el.peopleManagerModal) {
+      el.peopleManagerModal.addEventListener('click', (e) => {
+        if (e.target === el.peopleManagerModal) {
+          el.peopleManagerModal.style.display = 'none';
+          syncBodyModalState();
+        }
+      });
+    }
+
     // Backdrop dismissal
     window.addEventListener('click', (e) => {
       if (e.target === el.passwordModal) {
@@ -4240,6 +4548,10 @@
       }
       if (e.target === el.adminSuiteModal) {
         el.adminSuiteModal.style.display = 'none';
+      }
+      if (e.target === el.peopleManagerModal) {
+        el.peopleManagerModal.style.display = 'none';
+        syncBodyModalState();
       }
     });
   }
@@ -4323,6 +4635,11 @@
                     changed = true;
                   }
                 }
+                // Upgrade people tags from live manifest
+                if (Array.isArray(p.people) && p.people.length > 0 && (!Array.isArray(existing.people) || existing.people.length === 0)) {
+                  existing.people = p.people;
+                  changed = true;
+                }
               }
             }
           });
@@ -4339,6 +4656,13 @@
               current.coverThumb = mergedPhotos[0].thumbUrl || mergedPhotos[0].originalUrl;
             }
             changed = true;
+          }
+
+          if (Array.isArray(live.people) && live.people.length > 0) {
+            if (!Array.isArray(current.people) || current.people.length === 0 || JSON.stringify(current.people) !== JSON.stringify(live.people)) {
+              current.people = live.people;
+              changed = true;
+            }
           }
 
           if (live.title && live.title !== current.title) {
@@ -4366,6 +4690,7 @@
         } else if (state.currentAlbumId && state.albums[state.currentAlbumId]) {
           const current = state.albums[state.currentAlbumId];
           state.allPhotos = current.photos || [];
+          renderPeopleFilter(state.currentAlbumId);
           applyFiltersAndSort();
         }
       }
