@@ -4818,7 +4818,7 @@ select.action-btn:focus,
   gap: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 6px;
+  padding: 8px 4px 10px 4px;
   scrollbar-width: thin;
 }
 
@@ -4836,34 +4836,34 @@ select.action-btn:focus,
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
   flex-shrink: 0;
   user-select: none;
+  box-sizing: border-box;
 }
 
 /* DP-only Circular Avatar Chip */
 .person-chip.person-dp-chip {
   width: 44px;
   height: 44px;
-  padding: 3px;
+  padding: 2px;
   border-radius: 50%;
   border: 2px solid var(--border-light);
   background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   position: relative;
+  overflow: hidden;
 }
 
 .person-chip.person-dp-chip:hover {
   border-color: var(--accent-gold);
-  transform: translateY(-2px) scale(1.08);
-  box-shadow: 0 4px 14px rgba(201, 158, 50, 0.35);
+  box-shadow: 0 0 0 2px rgba(201, 158, 50, 0.35), 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .person-chip.person-dp-chip.active {
   border-color: var(--accent-gold);
-  background: rgba(201, 158, 50, 0.16);
-  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 16px rgba(201, 158, 50, 0.45);
-  transform: scale(1.08);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 2.5px var(--accent-gold), 0 3px 14px rgba(201, 158, 50, 0.4);
 }
 
 .person-chip.person-dp-chip .person-avatar {
@@ -4871,12 +4871,7 @@ select.action-btn:focus,
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(201, 158, 50, 0.25);
   display: block;
-}
-
-.person-chip.person-dp-chip.active .person-avatar {
-  border-color: var(--accent-gold);
 }
 
 /* All People Filter Pill */
@@ -4887,13 +4882,13 @@ select.action-btn:focus,
   font-size: 0.84rem;
   color: var(--text-primary);
   background: var(--bg-card-subtle);
-  border: 1.5px solid var(--border-light);
+  border: 2px solid var(--border-light);
   border-radius: var(--radius-full);
+  box-sizing: border-box;
 }
 
 .person-chip.all-chip:hover {
   border-color: var(--accent-gold);
-  transform: translateY(-1.5px);
 }
 
 .person-chip.all-chip.active {
@@ -5006,8 +5001,9 @@ select.action-btn:focus,
 }
 
 [data-theme="dark"] .person-chip.active {
-  background: rgba(201, 158, 50, 0.22);
+  background: rgba(30, 27, 24, 0.95);
   border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2.5px var(--accent-gold), 0 3px 14px rgba(201, 158, 50, 0.4);
 }
 
 [data-theme="dark"] .people-edit-row {
@@ -5090,7 +5086,7 @@ select.action-btn:focus,
     font-size: 0.78rem;
   }
 
-  .person-chip.active {
+  .person-chip.all-chip.active {
     box-shadow: 0 0 10px rgba(201, 158, 50, 0.35);
   }
 
