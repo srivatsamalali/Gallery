@@ -2504,7 +2504,6 @@ select.action-btn:focus,
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: transform 0.2s ease-out;
   touch-action: none;
 }
 
@@ -2536,6 +2535,9 @@ select.action-btn:focus,
   transition: opacity 0.25s ease;
   user-select: none;
   -webkit-user-drag: none;
+  transform-origin: center center;
+  will-change: transform;
+  touch-action: none;
 }
 
 @media (max-width: 768px) {
@@ -2547,14 +2549,13 @@ select.action-btn:focus,
   }
 }
 
-.lightbox-img.zoomed {
-  max-width: none;
-  max-height: none;
+.lightbox-img.is-zoomed {
   cursor: grab;
 }
 
-.lightbox-img.zoomed:active {
-  cursor: grabbing;
+.lightbox-img.is-zoomed:active,
+.lightbox-img.is-grabbing {
+  cursor: grabbing !important;
 }
 
 /* Lightbox Navigation Chevrons */
