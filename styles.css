@@ -5053,7 +5053,7 @@ select.action-btn:focus,
 
   .people-avatar-list {
     gap: 8px;
-    padding-bottom: 4px;
+    padding: 6px 2px 8px 2px;
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
